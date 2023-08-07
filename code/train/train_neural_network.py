@@ -26,7 +26,8 @@ parser.add_argument("n-simulations", type=str,
                     help = "Number of simulations to use in training procedure.")
 parser.add_argument("injfile", type=str,
                     help = "Path to .ini file used to make inserted injection.")
-parser.add
+parser.add_argument("--noisefile", type=str,
+                    help = "Path to noise file.")
 parser.add_argument("--add-noise", action="store_true", default = False)
 parser.add_argument("-v", "--verbose", action="store_true", default=False)
 
@@ -34,7 +35,7 @@ parser.add_argument("-v", "--verbose", action="store_true", default=False)
 args = parser.parse_args()
 
 training_samples = torch.as_tensor(training_file['signals'][:nsimulations,:], dtype=torch.float32)
-noise = noise_file['noise']['noise'][()]
+noise = args.noisefile["noise"][()]
 
 samples_length = training_samples.shape[0]
 
