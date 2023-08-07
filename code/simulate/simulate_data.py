@@ -28,7 +28,7 @@ with h5py.File(injfile, 'r') as f1:
     injector = InjectionSet(injfile)
     ninjections = len(injector.table)
 
-    with h5py.File(args.output_file, 'w') as f:  
+    with h5py.File(args.output_file, 'w') as f:
         for i in f1.attrs['static_args']:
             f['static_args/'+ i] = f1.attrs[i]
         for i in f1.keys():
