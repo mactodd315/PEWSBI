@@ -22,10 +22,12 @@ parser.add_argument("simfile", type=str,
                    help="Path to the simulation datafile, should be .hdf format.")
 parser.add_argument("output_file", type=str,
                     help = "Path for output file to be written, should be .pickle format.")
-parser.add_argument("n-simulations", type=str,
+parser.add_argument("n_simulations", type=int,
                     help = "Number of simulations to use in training procedure.")
-parser.add_argument("injfile", type=str,
-                    help = "Path to .ini file used to make inserted injection.")
+parser.add_argument("injected", type=str,
+                    help = "Path to .hdf file of injection.")
+parser.add_argument("inifile", type=str,
+                    help = "Path to .ini filed used to make injection.")
 parser.add_argument("--noisefile", type=str,
                     help = "Path to noise file.")
 parser.add_argument("--add-noise", action="store_true", default = False)
@@ -34,28 +36,32 @@ parser.add_argument("-v", "--verbose", action="store_true", default=False)
 
 args = parser.parse_args()
 
-training_samples = torch.as_tensor(training_file['signals'][:nsimulations,:], dtype=torch.float32)
-noise = args.noisefile["noise"][()]
+with h5py.File(args.simfile, 'r') as f:
+    training_samples = torch.as_tensor(f['signals'][:args.n_simulations,:], dtype=torch.float32)
 
-samples_length = training_samples.shape[0]
+samples_length = training_samples.shape[1]
+print(samples_length)
 
-if add_noise:
+if args.add_noise:
+    with h5py.File(args.noisefile, 'r') as f:
+    	noise = f["noise"][()]
     for i in range(len(training_samples)):
         index = np.random.choice(range(len(noise)-samples_length))
         training_samples[i,:] += torch.as_tensor(noise[index:index+samples_length], dtype=torch.float32)
 
-training_parameters = torch.zeros((samples_length, len(injection_file.keys())))
-variable_parameter_names = list(injection_file.keys())
-n_dim = len(variable_parameter_names)
-for i in range(len(training_parameters)):
-    training_parameters[:,i] = injection_file[variable_parameter_names[i]][()]
+with h5py.File(args.injected, 'r') as f:
+    training_parameters = torch.zeros((args.n_simulations, len(f.keys())))
+    variable_parameter_names = list(f.keys())
+    n_dim = len(variable_parameter_names)
+    for i in range(len(f.keys())):
+        training_parameters[:,i] = torch.as_tensor(f[variable_parameter_names[i]][()])
 
-bounds = [torch.tensor([get_bounds_from_config(injfile,each)[0] for each in variable_parameter_names]),
-            torch.tensor([get_bounds_from_config(injfile,each)[1] for each in variable_parameter_names])]
+bounds = [torch.tensor([get_bounds_from_config(args.inifile,each)[0] for each in variable_parameter_names]),
+            torch.tensor([get_bounds_from_config(args.inifile,each)[1] for each in variable_parameter_names])]
 prior = utils.BoxUniform(low = bounds[0]*torch.ones(n_dim), high = bounds[1]*torch.ones(n_dim))
 prior, _, priorr = process_prior(prior)
 inference = SNPE(prior)
 density_estimator = inference.append_simulations(training_parameters, training_samples).train()
 neural_net = inference.build_posterior(density_estimator)
-with open(outputfile, 'wb') as f:
+with open(args.output_file, 'wb') as f:
     pickle.dump(neural_net, f)
