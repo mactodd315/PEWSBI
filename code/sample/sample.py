@@ -11,6 +11,9 @@ parser.add_argument("neuralnet", type=str,
                      help="Path to the trained nerual network (.pickle).")
 parser.add_argument("outputfile", type=str,
                      help="Path to output file (.hdf)")
+parser.add_argument("observationfile", type=str,
+                    help="Path to observation file (.hdf).")
+parser.add_argument("--observation-num", type=int, default=0)
 parser.add_argument("--n-samples", type=int, default=10000,
                      help="Number of samples to draw from neural network.")
 parser.add_argument("--write-samples", action="store_true", default=False,
@@ -24,9 +27,9 @@ if __name__ == "__main__":
         net = pickle.load(f)
 
     
-    with h5py.File("../simulate/output.hdf", 'r') as f:
-        observation = torch.as_tensor(f['signals'][0,:])
-        true_parameters = [f['parameters'][key][0] for key in f['parameters'].keys()]
+    with h5py.File(args.observationfile, 'r') as f:
+        observation = torch.as_tensor(f['signals'][args.observation_num,:])
+        true_parameters = [f['parameters'][key][args.observation_num] for key in f['parameters'].keys()]
 
     samples = net.sample((args.n_samples,), x=observation)
     counts, _ = numpy.histogram(samples, 100, range=(10,100), density=True)

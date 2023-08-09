@@ -54,7 +54,7 @@ with h5py.File(args.injected, 'r') as f:
     variable_parameter_names = list(f.keys())
     n_dim = len(variable_parameter_names)
     for i in range(len(f.keys())):
-        training_parameters[:,i] = torch.as_tensor(f[variable_parameter_names[i]][()])
+        training_parameters[:,i] = torch.as_tensor(f[variable_parameter_names[i]][:args.n_simulations])
 
 bounds = [torch.tensor([get_bounds_from_config(args.inifile,each)[0] for each in variable_parameter_names]),
             torch.tensor([get_bounds_from_config(args.inifile,each)[1] for each in variable_parameter_names])]
