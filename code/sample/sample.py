@@ -18,26 +18,31 @@ parser.add_argument("--n-samples", type=int, default=10000,
                      help="Number of samples to draw from neural network.")
 parser.add_argument("--write-samples", action="store_true", default=False,
                      help="Option to write raw samples drawn from neural network")
+parser.add_argument("-v", "--verbose")
 
 args = parser.parse_args()
 
 
 if __name__ == "__main__":
+    if args.verbose:
+        print("Loading neural network...")
     with open(args.neuralnet, 'rb') as f:
         net = pickle.load(f)
 
-    
+    if args.verbose:
+        print("Fetching observations...")
     with h5py.File(args.observationfile, 'r') as f:
-        observation = torch.as_tensor(f['signals'][args.observation_num,:])
-        true_parameters = [f['parameters'][key][args.observation_num] for key in f['parameters'].keys()]
-
-    samples = net.sample((args.n_samples,), x=observation)
-    counts, _ = numpy.histogram(samples, 100, range=(10,100), density=True)
-    posterior = counts*90/100
+        observations = torch.as_tensor(f['signals'][:args.observation_num,:])
+        true_parameters = [f['parameters'][key][:args.observation_num] for key in f['parameters'].keys()]
+    if args.verbose:
+        print("Sampling...")
+    samples = [net.sample((args.n_samples,), x=each) for each in observations]
+    counts = [numpy.histogram(each, 100, range=(10,100), density=True)[0] for each in samples]
+    posteriors = [each*90/100 for each in counts]
     with h5py.File(args.outputfile, 'w') as f:
-        f['posterior'] = posterior
+        f['posteriors'] = posteriors
         f['true_parameters'] = true_parameters
-        print(posterior)
-        print(true_parameters)
         if args.write_samples:
             f['raw_samples'] = samples
+    if args.verbose:
+        print("All posterior estimates written.")

@@ -36,18 +36,23 @@ parser.add_argument("-v", "--verbose", action="store_true", default=False)
 
 args = parser.parse_args()
 
+if args.verbose:
+    print("Fetching training samples...")
 with h5py.File(args.simfile, 'r') as f:
     training_samples = torch.as_tensor(f['signals'][:args.n_simulations,:], dtype=torch.float32)
 
 samples_length = training_samples.shape[1]
-print(samples_length)
 
 if args.add_noise:
+    if args.verbose:
+        print("Adding noise...")
     with h5py.File(args.noisefile, 'r') as f:
     	noise = f["noise"][()]
     for i in range(len(training_samples)):
         index = np.random.choice(range(len(noise)-samples_length))
         training_samples[i,:] += torch.as_tensor(noise[index:index+samples_length], dtype=torch.float32)
+    if args.verbose:
+        print("Noise added.")
 
 with h5py.File(args.injected, 'r') as f:
     training_parameters = torch.zeros((args.n_simulations, len(f.keys())))
@@ -56,12 +61,18 @@ with h5py.File(args.injected, 'r') as f:
     for i in range(len(f.keys())):
         training_parameters[:,i] = torch.as_tensor(f[variable_parameter_names[i]][:args.n_simulations])
 
+if args.verbose:
+    print("Getting bounds...")
 bounds = [torch.tensor([get_bounds_from_config(args.inifile,each)[0] for each in variable_parameter_names]),
             torch.tensor([get_bounds_from_config(args.inifile,each)[1] for each in variable_parameter_names])]
 prior = utils.BoxUniform(low = bounds[0]*torch.ones(n_dim), high = bounds[1]*torch.ones(n_dim))
 prior, _, priorr = process_prior(prior)
 inference = SNPE(prior)
+if args.verbose:
+    print("Training...")
 density_estimator = inference.append_simulations(training_parameters, training_samples).train()
 neural_net = inference.build_posterior(density_estimator)
 with open(args.output_file, 'wb') as f:
     pickle.dump(neural_net, f)
+if args.verbose:
+    print("Neural network trained.")

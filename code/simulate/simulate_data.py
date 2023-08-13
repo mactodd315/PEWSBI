@@ -34,9 +34,15 @@ with h5py.File(injfile, 'r') as f1:
         for i in f1.keys():
             f['parameters/' + i] = f1[i][()]
         signal = np.zeros((ninjections,args.signal_length))
+        if args.verbose:
+            print("Injecting signals...")
         for i in range(ninjections):
+            if args.verbose and i%10 == 0:
+                print(str(i) + " signals injected...")
             a = TimeSeries(zeros(args.signal_length), epoch=args.epoch, delta_t=1.0/args.delta_f)
             injector.apply(a, 'H1', simulation_ids=[i])
             signal[i,:] = a
 
         f['signals'] = signal
+if args.verbose:
+    print("Done.")
