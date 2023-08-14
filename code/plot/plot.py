@@ -65,6 +65,6 @@ if __name__ == "__main__":
             run_pp_test(f['posteriors'][()], f['true_parameters'][()])
     if args.plot_content == "posterior":
         with h5py.File(args.posteriors, 'r') as f:
-            plot_posterior(f,args.posterior_index, plot_true = args.plot_true)  
- 
+            plot_posterior(f,args.posterior_index, plot_true = args.plot_true)
+
     plt.savefig(args.output)
