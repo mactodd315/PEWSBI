@@ -10,4 +10,6 @@ bash /home/mrtodd/PEWSBI/code/simulate/create_injection.sh \
 python /home/mrtodd/PEWSBI/code/simulate/simulate_data.py \
         /home/mrtodd/PEWSBI/code/simulate/injection.hdf \
         /home/mrtodd/PEWSBI/code/simulate/training_data.hdf \
+	--signal-length 1200 \
+	--monitor-rate 30 \
         -v

@@ -12,7 +12,7 @@ parser.add_argument("injfile", type=str,
                    help="Path to the injection file, should be .hdf format.")
 parser.add_argument("output_file", type=str,
                     help = "Path for output file to be written, should be .hdf format.")
-parser.add_argument("--signal-length", type=float, default = 4096)
+parser.add_argument("--signal-length", type=int, default = 4096)
 parser.add_argument("--delta-f", type=int, default = 1024)
 parser.add_argument("--epoch", type=float, default = 0)
 parser.add_argument("-v", "--verbose", action="store_true", default=False)
