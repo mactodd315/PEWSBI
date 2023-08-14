@@ -23,6 +23,7 @@ parser.add_argument("--posterior-index", type=int,
                     help = "Location of posterior desired when choosing to plot one posterior.")
 parser.add_argument("--plot-true", action="store_true",
                     help = "If plotting posterior, plot true parameter or not.")
+parser.add_argument("-v", "--verbose", action="store_true", default=False)
 
 args = parser.parse_args()
 
@@ -48,7 +49,9 @@ def run_pp_test(dataset, parameters, n_intervals = 21, **kwargs):
         trues_list = [1 if is_true(credibility, cumulatives[j], parameters[:,j]) else 0 for j in range(len(dataset)) ]
         trues_in_intervals[i] = sum(trues_list)/dataset.shape[0]
     trues_in_intervals[-1] = 1
-    plt.plot(credible_intervals, trues_in_intervals)
+    if 'label' in kwargs.keys():
+        labeltxt = str(kwargs['label'])
+    plt.plot(credible_intervals, trues_in_intervals, label = labeltxt)
     return 0
 #----------------------
 def plot_posterior(file, posterior_num, plot_true = True):
@@ -62,9 +65,9 @@ def plot_posterior(file, posterior_num, plot_true = True):
 if __name__ == "__main__":
     if args.plot_content == "pptest":
         with h5py.File(args.posteriors, 'r') as f:
-            run_pp_test(f['posteriors'][()], f['true_parameters'][()])
+            run_pp_test(f['posteriors'][()], f['true_parameters'][()], verbose = args.verbose, label = args.num_posteriors)
     if args.plot_content == "posterior":
         with h5py.File(args.posteriors, 'r') as f:
             plot_posterior(f,args.posterior_index, plot_true = args.plot_true)
-
+    plt.legend()
     plt.savefig(args.output)
