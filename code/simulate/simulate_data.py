@@ -16,6 +16,7 @@ parser.add_argument("--signal-length", type=float, default = 4096)
 parser.add_argument("--delta-f", type=int, default = 1024)
 parser.add_argument("--epoch", type=float, default = 0)
 parser.add_argument("-v", "--verbose", action="store_true", default=False)
+parser.add_argument("--monitor-rate", type=int, default=10)
 
 
 args = parser.parse_args()
@@ -37,7 +38,7 @@ with h5py.File(injfile, 'r') as f1:
         if args.verbose:
             print("Injecting signals...")
         for i in range(ninjections):
-            if args.verbose and i%10 == 0:
+            if args.verbose and i%args.monitor_rate == 0:
                 print(str(i) + " signals injected...")
             a = TimeSeries(zeros(args.signal_length), epoch=args.epoch, delta_t=1.0/args.delta_f)
             injector.apply(a, 'H1', simulation_ids=[i])
