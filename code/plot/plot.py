@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import argparse, h5py, numpy, sys
 
-sys.path.append("train")
+sys.path.append("/home/mrtodd/PEWSBI/code/train")
 
 from train_neural_network import get_bounds_from_config
 
