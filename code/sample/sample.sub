@@ -1,0 +1,11 @@
+executable = /home/mrtodd/PEWSBI/code/sample/sample.sh
+error = /home/mrtodd/errorfiles/sample.err
+log = /home/mrtodd/logfiles/sample.log
+output = /home/mrtodd/outputfiles/sample.out
+
+request_cpus = 1
+request_memory = 50 GB
+
+Requirements = regexp("CRUSH", TARGET.name)
+
+queue

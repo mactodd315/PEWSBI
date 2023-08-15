@@ -1,7 +1,7 @@
 from sbi.inference import SNPE
 import torch, numpy, pickle, h5py, argparse, sys, configparser
 
-sys.path.append("train")
+sys.path.append("/home/mrtodd/PEWSBI/code/train")
 
 from train_neural_network import get_bounds_from_config
 
