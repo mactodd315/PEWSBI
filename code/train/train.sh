@@ -1,11 +1,13 @@
 #!/bin/bash
 
-source ~/miniconda3/bin/activate sbi_env
+source /home/mrtodd/miniconda3/bin/activate sbi_env
 
-python train_neural_network.py ../simulate/output.hdf \
-                           test_nn.pickle \
-                           10 \
-                           ../simulate/injection.hdf \
-                           ../simulate/injection.ini \
-                           --noisefile ../simulate/noise.hdf \
-                           --add-noise
+python /home/mrtodd/PEWSBI/code/train/train_neural_network.py \
+                           /home/mrtodd/PEWSBI/code/simulate/training_simulations.hdf \
+                           /home/mrtodd/PEWSBI/code/train/neural_network.pickle \
+                           20000 \
+                           /home/mrtodd/PEWSBI/code/simulate/injection_test.hdf \
+                           /home/mrtodd/PEWSBI/code/simulate/injection.ini \
+                           --noisefile /home/mrtodd/PEWSBI/code/simulate/noise.hdf \
+                           --add-noise \
+                           -v
