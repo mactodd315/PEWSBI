@@ -25,6 +25,8 @@ if __name__ == "__main__":
                         help="Path to config file (.ini).")
     parser.add_argument("sample_parameter", type=str,
                         help="Parameter name to sample.")
+    parser.add_argument("training_number", type=int,
+                        help = "Number of training samples used for neural network.")
     parser.add_argument("--observation-num", type=int, default=0)
     parser.add_argument("--n-samples", type=int, default=10000,
                          help="Number of samples to draw from neural network.")
@@ -54,6 +56,7 @@ if __name__ == "__main__":
     posteriors = [each*(bounds[1]-bounds[0])/args.n_bins for each in counts]
     with h5py.File(args.outputfile, 'w') as f:
         f['posteriors'] = posteriors
+        f['posteriors'].attrs['training_size'] = args.training_size
         f['true_parameters'] = true_parameters
         if args.write_samples:
             f['raw_samples'] = samples
