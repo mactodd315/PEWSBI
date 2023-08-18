@@ -76,7 +76,12 @@ if __name__ == "__main__":
     if args.plot_content == "pptest":
         for each in args.posteriors:
             with h5py.File(each, 'r') as f:
-                run_pp_test(f['posteriors'][:args.num_posteriors,:], f['true_parameters'][:args.num_posteriors], verbose = args.verbose, label = f['posteriors'].attrs['training_size'], config_file = args.config_file, parameter = args.sample_parameter)
+                run_pp_test(f['posteriors'][:args.num_posteriors,:],
+                            f['true_parameters'][:args.num_posteriors],
+                            verbose = args.verbose,
+                            label = f['posteriors'].attrs['training_size'],
+                            config_file = args.config_file,
+                            parameter = args.sample_parameter)
     if args.plot_content == "posterior":
         with h5py.File(args.posteriors, 'r') as f:
             plot_posterior(f,args.posterior_index, plot_true = args.plot_true)
