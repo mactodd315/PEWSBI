@@ -4,6 +4,8 @@ import argparse, h5py
 import numpy as np
 from multiprocessing import Pool
 
+global args
+
 ####################################################################################################
 parser = argparse.ArgumentParser(
                     prog = "Create Simulation Data: ",
@@ -23,14 +25,28 @@ parser.add_argument("--pool-number", type=int, default=1)
 
 args = parser.parse_args()
 ####################################################################################################
-def injection_to_signal(injection, args):
-    signal = np.zeros((ninjections,args.signal_length))
-        if args.verbose:   print("Injecting signals...")
-        for i in range(ninjections):
-            a = TimeSeries(zeros(args.signal_length), epoch=args.epoch, delta_t=1.0/args.delta_f)
-            injector.apply(a, 'H1', simulation_ids=[i])
-            signal[i,:] = a
+
+def injection_to_signal(items):
+    injector, args, n_simulations, indices = items
+    signal = np.zeros((n_simulations,args.signal_length))
+    if args.verbose:   print("Injecting signals...")
+    for i in list(range(n_simulations))[indices[0]:indices[1]]:
+        print(i)
+        a = TimeSeries(zeros(args.signal_length), epoch=args.epoch, delta_t=1.0/args.delta_f)
+        injector.apply(a, 'H1', simulation_ids=[i])
+        signal[i,:] = a
     return signal
+
+def slice_injections(n_sims, n_pools):
+    index_ranges = []
+    if n_sims%n_pools!=0:
+        for i in range(n_pools-1):
+            index_ranges.append((i*n_sims//n_pools, (i+1)*n_sims//n_pools))
+        index_ranges.append(((n_pools-1)*n_sims//n_pools,None))
+    else:
+        for i in range(n_pools):
+            index_ranges.append((i*n_sims//n_pools, (i+1)*n_sims//n_pools))
+    return index_ranges
 
 if __name__ == "__main__":
     injfile = args.injfile
@@ -43,25 +59,12 @@ if __name__ == "__main__":
             for i in f1.keys():
                 f['parameters/' + i] = f1[i][()]
             with Pool(args.pool_number) as pool:
-                sub_injection_size = len(f1[f1.keys()[0]])//args.pool_size
                 injector = InjectionSet(injfile)
-                signals = pool.map(injection_to_signal, injections_list)
-
-
-
-        injector = InjectionSet(injfile)
-        ninjections = len(injector.table)
-
-
-            signal = np.zeros((ninjections,args.signal_length))
-            if args.verbose:
-                print("Injecting signals...")
-            for i in range(ninjections):
-                if args.verbose and i%args.monitor_rate == 0:
-                    print(str(i) + " signals injected...")
-                a = TimeSeries(zeros(args.signal_length), epoch=args.epoch, delta_t=1.0/args.delta_f)
-                injector.apply(a, 'H1', simulation_ids=[i])
-                signal[i,:] = a
+                n_simulations = len(injector.table)
+                injection_indices = slice_injections(n_simulations, args.pool_number)
+                items = [(injector, args, n_simulations, indices) for indices in injection_indices]
+                signals = pool.map(injection_to_signal, items)
+                print(signals)
 
             f['signals'] = signal
     if args.verbose:
