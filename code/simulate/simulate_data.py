@@ -2,9 +2,7 @@ from  pycbc.inject import InjectionSet
 from pycbc.types import TimeSeries, zeros
 import argparse, h5py
 import numpy as np
-from multiprocessing import Pool
 
-global args
 
 ####################################################################################################
 parser = argparse.ArgumentParser(
@@ -31,7 +29,7 @@ def injection_to_signal(items):
     signal = np.zeros((n_simulations,args.signal_length))
     if args.verbose:   print("Injecting signals...")
     for i in list(range(n_simulations))[indices[0]:indices[1]]:
-        print(i)
+        if args.verbose and i%args.monitor_rate==0:    print(i, " signals injected.")
         a = TimeSeries(zeros(args.signal_length), epoch=args.epoch, delta_t=1.0/args.delta_f)
         injector.apply(a, 'H1', simulation_ids=[i])
         signal[i,:] = a
@@ -58,13 +56,11 @@ if __name__ == "__main__":
                 f['static_args/'+ i] = f1.attrs[i]
             for i in f1.keys():
                 f['parameters/' + i] = f1[i][()]
-            with Pool(args.pool_number) as pool:
                 injector = InjectionSet(injfile)
                 n_simulations = len(injector.table)
                 injection_indices = slice_injections(n_simulations, args.pool_number)
-                items = [(injector, args, n_simulations, indices) for indices in injection_indices]
-                signals = pool.map(injection_to_signal, items)
-                print(signals)
+                items = (injector, args, n_simulations, (0,None)) 
+                signal = injection_to_signal(items)
 
             f['signals'] = signal
     if args.verbose:
