@@ -1,0 +1,13 @@
+executable = /home/mrtodd/PEWSBI/code/train/train.sh
+arguments = 10000000
+error = /home/mrtodd/errorfiles/train.err
+log = /home/mrtodd/logfiles/train.log
+output = /home/mrtodd/outputfiles/train.out
+
+request_cpus = 10
+request_memory = 120 G
+request_disk  = 10 G
+
+Requirements = regexp("CRUSH", TARGET.name)
+
+queue

@@ -1,4 +1,4 @@
-import argparse, h5py, torch, pickle
+import argparse, h5py, torch, pickle, logging, time
 import numpy as np
 import sbi.utils as utils
 from sbi.inference import SNPE
@@ -12,6 +12,14 @@ def get_bounds_from_config(filepath, parameter):
     param_prior = 'prior-'+parameter
     bounds = [float(cp[param_prior]['min-'+parameter]), float(cp[param_prior]['max-'+parameter])]
     return bounds
+
+def eta(timing, current, total):
+    eta = timing*(total-current)
+    hrs = eta//3600
+    mins = (eta%3600)//60
+    secs = (eta%3600)%60
+    eta = "{:.2f}h {:.2f}m {:.2f}s".format(hrs,mins,secs)
+    return eta
 
 
 
@@ -28,58 +36,61 @@ if __name__ == "__main__":
                         help = "Path for output file to be written, should be .pickle format.")
     parser.add_argument("n_simulations", type=int,
                         help = "Number of simulations to use in training procedure.")
-    parser.add_argument("injected", type=str,
-                        help = "Path to .hdf file of injection.")
     parser.add_argument("inifile", type=str,
                         help = "Path to .ini filed used to make injection.")
     parser.add_argument("--noisefile", type=str,
                         help = "Path to noise file.")
     parser.add_argument("--add-noise", action="store_true", default = False)
     parser.add_argument("-v", "--verbose", action="store_true", default=False)
+    parser.add_argument("--logfile", type=str)
     parser.add_argument("--monitor-rate", type=int, default=20)
 
 
     args = parser.parse_args()
     #########################################################################################
     if args.verbose:
-        print("Fetching training samples...")
+        logging.basicConfig(filename=args.logfile, level=logging.DEBUG)
+        logging.info("Fetching training samples...")
     with h5py.File(args.simfile, 'r') as f:
+        if args.verbose:    logging.info("Fetching parameters...")
+        training_parameters = torch.zeros((args.n_simulations, len(f['parameters'].keys())))
+        variable_parameter_names = list(f['parameters'].keys())
+        n_dim = len(variable_parameter_names)
+        for i in range(n_dim):
+            training_parameters[:,i] = torch.as_tensor(f['parameters/'+variable_parameter_names[i]][:args.n_simulations])
+        
+        if args.verbose:    logging.info("Done.\nFetching signals...")
         training_samples = torch.as_tensor(f['signals'][:args.n_simulations,:], dtype=torch.float32)
 
     samples_length = training_samples.shape[1]
 
     if args.add_noise:
         if args.verbose:
-            print("Adding noise...")
+            logging.info("Adding noise...")
         with h5py.File(args.noisefile, 'r') as f:
             noise = f["noise"][()]
         for i in range(len(training_samples)):
+            tic = time.perf_counter()
             index = np.random.choice(range(len(noise)-samples_length))
             training_samples[i,:] += torch.as_tensor(noise[index:index+samples_length], dtype=torch.float32)
             if args.verbose and i%args.monitor_rate==0:
-                print("Noise added to " + str(i) + " out of " + str(args.n_simulations) + " signals.")
+                toc = time.perf_counter()
+                logging.info("Noise added to " + str(i) + " out of " + str(args.n_simulations) + " signals. ETA:  " + eta(toc-tic,i,len(training_samples)))
         if args.verbose:
-            print("Noise added.")
-
-    with h5py.File(args.injected, 'r') as f:
-        training_parameters = torch.zeros((args.n_simulations, len(f.keys())))
-        variable_parameter_names = list(f.keys())
-        n_dim = len(variable_parameter_names)
-        for i in range(len(f.keys())):
-            training_parameters[:,i] = torch.as_tensor(f[variable_parameter_names[i]][:args.n_simulations])
+            logging.info("Noise added.")
 
     if args.verbose:
-        print("Getting bounds...")
+        logging.info("Getting bounds...")
     bounds = [torch.tensor([get_bounds_from_config(args.inifile,each)[0] for each in variable_parameter_names]),
                 torch.tensor([get_bounds_from_config(args.inifile,each)[1] for each in variable_parameter_names])]
     prior = utils.BoxUniform(low = bounds[0]*torch.ones(n_dim), high = bounds[1]*torch.ones(n_dim))
     prior, _, priorr = process_prior(prior)
     inference = SNPE(prior)
     if args.verbose:
-        print("Training...")
+        logging.info("Training...")
     density_estimator = inference.append_simulations(training_parameters, training_samples).train()
     neural_net = inference.build_posterior(density_estimator)
     with open(args.output_file, 'wb') as f:
         pickle.dump(neural_net, f)
     if args.verbose:
-        print("Neural network trained.")
+        logging.info("Neural network trained.")
