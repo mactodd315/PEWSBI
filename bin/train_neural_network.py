@@ -6,6 +6,8 @@ from sbi.utils.user_input_checks import process_prior
 
 import configparser
 
+
+
 def get_bounds_from_config(filepath, parameter):
     cp = configparser.ConfigParser()
     cp.read(filepath)
@@ -59,7 +61,7 @@ if __name__ == "__main__":
         for i in range(n_dim):
             training_parameters[:,i] = torch.as_tensor(f['parameters/'+variable_parameter_names[i]][:args.n_simulations])
         
-        if args.verbose:    logging.info("Done.\nFetching signals...")
+        if args.verbose:    logging.info("Fetching signals...")
         training_samples = torch.as_tensor(f['signals'][:args.n_simulations,:], dtype=torch.float32)
 
     samples_length = training_samples.shape[1]
@@ -67,17 +69,21 @@ if __name__ == "__main__":
     if args.add_noise:
         if args.verbose:
             logging.info("Adding noise...")
+        
+        start = time.perf_counter()   
         with h5py.File(args.noisefile, 'r') as f:
-            noise = f["noise"][()]
+            noise = torch.as_tensor(f["noise"][()], dtype=torch.float32)
+        indices = np.random.choice(list(range(len(noise)-samples_length)), size = len(training_samples))
         for i in range(len(training_samples)):
             tic = time.perf_counter()
-            index = np.random.choice(range(len(noise)-samples_length))
-            training_samples[i,:] += torch.as_tensor(noise[index:index+samples_length], dtype=torch.float32)
+            training_samples[i,:] += noise[indices[i]:indices[i]+samples_length]
             if args.verbose and i%args.monitor_rate==0:
                 toc = time.perf_counter()
-                logging.info("Noise added to " + str(i) + " out of " + str(args.n_simulations) + " signals. ETA:  " + eta(toc-tic,i,len(training_samples)))
-        if args.verbose:
-            logging.info("Noise added.")
+                logging.info("Noise added to {} out of {} signals. Time-passed: {:.6f}  ETA:  {}".format(str(i),str(args.n_simulations),toc-tic, eta(toc-tic,i,len(training_samples))))
+                    
+        end = time.perf_counter()
+        if args.verbose:     logging.info("Total time: {}".format(end-start))
+        if args.verbose:     logging.info("Noise added.")
 
     if args.verbose:
         logging.info("Getting bounds...")
