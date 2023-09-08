@@ -1,5 +1,5 @@
 executable = /home/mrtodd/PEWSBI/code/train/train.sh
-arguments = 10000000
+arguments = 100000
 error = /home/mrtodd/errorfiles/train.err
 log = /home/mrtodd/logfiles/train.log
 output = /home/mrtodd/outputfiles/train.out
