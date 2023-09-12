@@ -13,15 +13,15 @@ parser = argparse.ArgumentParser(prog="Plotter"
 
 
 #------------------
-parser.add_argument("posteriors", nargs='+',
+parser.add_argument("--posterior", required=True,
                     help = "Path to file containing posteriors to be plotted.")
-parser.add_argument("output", type=str,
+parser.add_argument("--output", type=str, required=True,
                     help = "Path for produced plot.")
-parser.add_argument("plot_content", choices = ["pptest", "posterior"],
+parser.add_argument("--plot-content", choices = ["pptest", "posterior"], required=True,
                     help = "Decision to either plot a pptest or just plot one posterior.")
-parser.add_argument("config_file", type=str,
+parser.add_argument("--config-file", type=str, required=True,
                         help="Path to config file (.ini).")
-parser.add_argument("sample_parameter", type=str,
+parser.add_argument("--sample-parameter", type=str, required=True,
                         help="Parameter name to sample.")
 
 parser.add_argument("--num-posteriors", type=int,
@@ -37,9 +37,9 @@ parser.add_argument("-v", "--verbose", action="store_true", default=False)
 args = parser.parse_args()
 
 ######################################################################
-def is_true(credibility, cumulative, parameter, config_file, config_parameter):
+def is_true(credibility, cumulative, parameter, config_file, config_parameter, bins):
     bounds = get_bounds_from_config(config_file, config_parameter)
-    theta = numpy.linspace(bounds[0],bounds[1],200)
+    theta = numpy.linspace(bounds[0],bounds[1],bins)
     credibility_bounds = theta[numpy.searchsorted(cumulative,[0,credibility])]
     if parameter<= credibility_bounds[1] and parameter >= credibility_bounds[0]:
         return True
@@ -56,7 +56,7 @@ def run_pp_test(dataset, parameters, n_intervals = 21, **kwargs):
     cumulatives = [dataset[j,:].cumsum() for j in range(len(dataset))]
     for i in range(1,n_intervals-1):
         credibility = credible_intervals[i]
-        trues_list = [1 if is_true(credibility, cumulatives[j], parameters[:,j], config_file=kwargs['config_file'], config_parameter= kwargs['parameter']) else 0 for j in range(len(dataset)) ]
+        trues_list = [1 if is_true(credibility, cumulatives[j], parameters[:,j], config_file=kwargs['config_file'], config_parameter= kwargs['parameter'], bins=dataset.shape[1]) else 0 for j in range(len(dataset)) ]
         trues_in_intervals[i] = sum(trues_list)/dataset.shape[0]
     trues_in_intervals[-1] = 1
     if 'label' in kwargs.keys():
@@ -69,21 +69,23 @@ def plot_posterior(file, posterior_num, plot_true = True):
     plt.plot(posterior)
     if plot_true:
         plt.axvline(file["true_parameters"][:,posterior_num])
+    
     return 0
 #--------------------------------------------------------------------------
 
 if __name__ == "__main__":
+    args_dict = vars(args)
     if args.plot_content == "pptest":
-        for each in args.posteriors:
-            with h5py.File(each, 'r') as f:
-                run_pp_test(f['posteriors'][:args.num_posteriors,:],
-                            f['true_parameters'][:args.num_posteriors],
-                            verbose = args.verbose,
-                            label = f['posteriors'].attrs['training_size'],
-                            config_file = args.config_file,
-                            parameter = args.sample_parameter)
+        with h5py.File(args.posterior, 'r') as f:
+            run_pp_test(f['posteriors'][:args.num_posteriors,:],
+                        f['true_parameters'][:args.num_posteriors],
+                        label = f['posteriors'].attrs['training_size'],
+                        config_file = args.config_file,
+                        parameter = args.sample_parameter)
     if args.plot_content == "posterior":
-        with h5py.File(args.posteriors, 'r') as f:
+        with h5py.File(args.posterior, 'r') as f:
             plot_posterior(f,args.posterior_index, plot_true = args.plot_true)
     plt.legend()
+    if 'plot_title' in args_dict.keys():
+        plt.title(args.plot_title)
     plt.savefig(args.output)
