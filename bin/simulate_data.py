@@ -2,6 +2,7 @@ from  pycbc.inject import InjectionSet
 from pycbc.types import TimeSeries, zeros
 import argparse, h5py
 import numpy as np
+from combine_signals import *
 
 
 ####################################################################################################

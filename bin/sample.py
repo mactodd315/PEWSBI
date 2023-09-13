@@ -46,11 +46,11 @@ if __name__ == "__main__":
     if args.verbose:
         print("Fetching observations...")
     with h5py.File(args.observation_file, 'r') as f:
-        observations = torch.as_tensor(f['signals'][:args.observation_num,:])
+        observations = torch.as_tensor(f['signals'][:args.observation_num,:], device=torch.device('cuda'))
         true_parameters = [f['parameters'][key][:args.observation_num] for key in f['parameters'].keys()]
     if args.verbose:
         print("Sampling...")
-    samples = [net.sample((args.n_samples,), x=each) for each in observations]
+    samples = [net.sample((args.n_samples,), x=each).cpu() for each in observations]
     bounds = get_bounds_from_config(args.config_file, args.sample_parameter)
     counts = [numpy.histogram(each, args.n_bins, range=(bounds[0],bounds[1]), density=True)[0] for each in samples]
     posteriors = [each*(bounds[1]-bounds[0])/args.n_bins for each in counts]

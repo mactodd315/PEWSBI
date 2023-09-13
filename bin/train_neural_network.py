@@ -48,7 +48,7 @@ def add_noise(training_samples, device, args):
 def train(training_samples,training_parameters, bounds, device, args):
             
     n_dim = len(bounds[0])
-    prior = utils.BoxUniform(low = bounds[0]*torch.ones(n_dim, device=device), high = bounds[1]*torch.ones(n_dim, device=device))
+    prior = utils.BoxUniform(low = bounds[0]*torch.ones(n_dim, device=device), high = bounds[1]*torch.ones(n_dim, device=device), device='cuda')
     prior, _, priorr = process_prior(prior)
     inference = SNPE(prior, device='cuda')
     if args.verbose: logging.info("Training...")
