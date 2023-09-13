@@ -19,6 +19,7 @@ parser.add_argument("--delta-f", type=int, default = 1024)
 parser.add_argument("--epoch", type=float, default = 0)
 parser.add_argument("-v", "--verbose", action="store_true", default=False)
 parser.add_argument("--monitor-rate", type=int, default=10)
+parser.add_argument("--DNRF", default=10e18)
 
 args = parser.parse_args()
 ####################################################################################################
@@ -31,7 +32,7 @@ def injection_to_signal(items):
         if args.verbose and i%args.monitor_rate==0:    print(i, " signals injected.")
         a = TimeSeries(np.zeros(args.signal_length, dtype=np.float32), epoch=args.epoch, delta_t=1.0/args.delta_f)
         injector.apply(a, 'H1', simulation_ids=[i])
-        signal[i,:] = a
+        signal[i,:] = a*args.DNRF
     return signal
 
 

@@ -7,13 +7,9 @@ from sbi.utils.user_input_checks import process_prior
 import configparser
 
 
-def get_training_data(sim_filename, args):
+def get_training_data(sim_filename, device, args):
     
     with h5py.File(sim_filename, 'r') as f:
-        if args.gpu:
-            device='cuda'
-        else:
-            device='cpu'
             
         if args.verbose: logging.info("Fetching training samples...")
         training_samples = torch.as_tensor(f['signals'][:args.n_simulations,:], dtype=torch.float32, device=device)
@@ -27,12 +23,8 @@ def get_training_data(sim_filename, args):
             training_parameters[:,i] = torch.as_tensor(f['parameters/'+variable_parameter_names[i]][:args.n_simulations], device=device)
     return training_samples,training_parameters, variable_parameter_names
             
-def add_noise(training_samples, args):
-    if args.gpu:
-        device='cuda'
-    else:
-        device='cpu'
-            
+def add_noise(training_samples, device, args):
+           
     samples_length = training_samples.shape[1]
     
     if args.verbose:  logging.info("Adding noise...")
@@ -53,11 +45,7 @@ def add_noise(training_samples, args):
     return
         
         
-def train(training_samples,training_parameters, bounds, args):
-    if args.gpu:
-        device='cuda'
-    else:
-        device='cpu'
+def train(training_samples,training_parameters, bounds, device, args):
             
     n_dim = len(bounds[0])
     prior = utils.BoxUniform(low = bounds[0]*torch.ones(n_dim, device=device), high = bounds[1]*torch.ones(n_dim, device=device))
@@ -116,17 +104,21 @@ if __name__ == "__main__":
     
     
     logging.basicConfig(filename=args.logfile, level=logging.DEBUG)
-    training_samples, training_parameters, variable_parameter_names = get_training_data(args.simfile, args)
+    if args.gpu:
+        device = torch.device('cuda')
+    else:
+        device = torch.device('cpu')
+
+    training_samples, training_parameters, variable_parameter_names = get_training_data(args.simfile, device, args)
     
-    if args.add_noise: add_noise(training_samples, args)
+    if args.add_noise: add_noise(training_samples, device, args)
         
 
     if args.verbose:  logging.info("Getting bounds...")
-    bounds = [torch.tensor([get_bounds_from_config(args.inifile,each)[0] for each in variable_parameter_names]),
-                torch.tensor([get_bounds_from_config(args.inifile,each)[1] for each in variable_parameter_names])]
+    bounds = [torch.tensor([get_bounds_from_config(args.inifile,each)[0] for each in variable_parameter_names],device = device), torch.tensor([get_bounds_from_config(args.inifile,each)[1] for each in variable_parameter_names],device = device)]
     
     if args.verbose: logging.info("Training...")
-    neural_net = train(training_samples,training_parameters,bounds,args)
+    neural_net = train(training_samples,training_parameters,bounds,device,args)
     
     with open(args.output_file, 'wb') as f:     pickle.dump(neural_net, f)
         
