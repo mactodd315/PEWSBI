@@ -50,7 +50,7 @@ def train(training_samples,training_parameters, bounds, device, args):
     n_dim = len(bounds[0])
     prior = utils.BoxUniform(low = bounds[0]*torch.ones(n_dim, device=device), high = bounds[1]*torch.ones(n_dim, device=device))
     prior, _, priorr = process_prior(prior)
-    inference = SNPE(prior)
+    inference = SNPE(prior, device='cuda')
     if args.verbose: logging.info("Training...")
     density_estimator = inference.append_simulations(training_parameters, training_samples).train()
     neural_net = inference.build_posterior(density_estimator)
