@@ -64,9 +64,11 @@ def run_pp_test(dataset, parameters, n_intervals = 21, **kwargs):
     plt.plot(credible_intervals, trues_in_intervals, label = labeltxt)
     return 0
 #----------------------
-def plot_posterior(file, posterior_num, plot_true = True):
+def plot_posterior(file, posterior_num, plot_true = True, **kwargs):
     posterior = file['posteriors'][posterior_num,:]
-    plt.plot(posterior)
+    bounds = get_bounds_from_config(kwargs['config_file'], kwargs['parameter'])
+    theta = numpy.linspace(bounds[0],bounds[1],len(posterior))
+    plt.plot(theta, posterior)
     if plot_true:
         plt.axvline(file["true_parameters"][:,posterior_num])
     
@@ -84,7 +86,9 @@ if __name__ == "__main__":
                         parameter = args.sample_parameter)
     if args.plot_content == "posterior":
         with h5py.File(args.posterior, 'r') as f:
-            plot_posterior(f,args.posterior_index, plot_true = args.plot_true)
+            plot_posterior(f,args.posterior_index, plot_true = args.plot_true,
+                          config_file = args.config_file,
+                          parameter = args.sample_parameter)
     plt.legend()
     if 'plot_title' in args_dict.keys():
         plt.title(args.plot_title)
