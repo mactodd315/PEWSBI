@@ -1,9 +1,18 @@
 from sbi.inference import SNPE
-import torch, numpy, pickle, h5py, argparse, sys, configparser
+import torch, numpy, pickle, h5py, argparse, sys, configparser, os
 
 sys.path.append("/home/mrtodd/PEWSBI/code/train")
 
 from train_neural_network import get_bounds_from_config
+def details(neuralnet):
+    dets = {}
+    neuralnet = neuralnet.split('.')[0]
+    neuralnet = neuralnet.split('/')[-1]
+    l = neuralnet.split('_')
+    dets['training_number'] = l[1][2:]
+    dets['learning_rate'] = l[2][2:]
+    dets['batch_size'] = l[3][2:]
+    return dets
 
 
 if __name__ == "__main__":
@@ -17,7 +26,7 @@ if __name__ == "__main__":
 
     parser.add_argument("--neural-net", type=str, required=True,
                          help="Path to the trained nerual network (.pickle).")
-    parser.add_argument("--output-file", type=str, required=True,
+    parser.add_argument("--output-folder", type=str, required=True,
                          help="Path to output file (.hdf)")
     parser.add_argument("--observation-file", type=str, required=True,
                         help="Path to observation file (.hdf).")
@@ -25,8 +34,6 @@ if __name__ == "__main__":
                         help="Path to config file (.ini).")
     parser.add_argument("--sample-parameter", type=str, required=True,
                         help="Parameter name to sample.")
-    parser.add_argument("--training-number", type=int, required=True,
-                        help = "Number of training samples used for neural network.")
     parser.add_argument("--observation-num", type=int, default=0)
     parser.add_argument("--n-samples", type=int, default=10000,
                          help="Number of samples to draw from neural network.")
@@ -37,6 +44,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     ###############################################
+    if not os.path.exists(args.output_folder):
+        os.makedirs(args.output_folder)
 
     if args.verbose:
         print("Loading neural network...")
@@ -46,7 +55,7 @@ if __name__ == "__main__":
     if args.verbose:
         print("Fetching observations...")
     with h5py.File(args.observation_file, 'r') as f:
-        observations = torch.as_tensor(f['signals'][:args.observation_num,:], device=torch.device('cuda'))
+        observations = torch.as_tensor(f['signals'][:args.observation_num,:])
         true_parameters = [f['parameters'][key][:args.observation_num] for key in f['parameters'].keys()]
     if args.verbose:
         print("Sampling...")
@@ -54,9 +63,11 @@ if __name__ == "__main__":
     bounds = get_bounds_from_config(args.config_file, args.sample_parameter)
     counts = [numpy.histogram(each, args.n_bins, range=(bounds[0],bounds[1]), density=True)[0] for each in samples]
     posteriors = [each*(bounds[1]-bounds[0])/args.n_bins for each in counts]
-    with h5py.File(args.output_file, 'w') as f:
+    nn_params = details(args.neural_net)
+    posteriorname = f"posterior_TS{nn_params['training_number']}_LR{nn_params['learning_rate']}_BS{nn_params['batch_size']}.hdf"
+    with h5py.File(args.output_folder+'/'+posteriorname, 'w') as f:
         f['posteriors'] = posteriors
-        f['posteriors'].attrs['training_size'] = args.training_number
+        f['posteriors'].attrs['training_size'] = nn_params['training_number']
         f['true_parameters'] = true_parameters
         if args.write_samples:
             f['raw_samples'] = samples

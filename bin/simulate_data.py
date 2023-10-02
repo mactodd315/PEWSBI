@@ -1,8 +1,8 @@
 from  pycbc.inject import InjectionSet
 from pycbc.types import TimeSeries, zeros
-import argparse, h5py
+import argparse, h5py, os
 import numpy as np
-from combine_signals import *
+import matplotlib.pyplot as plt
 
 
 ####################################################################################################
@@ -13,45 +13,60 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument("--injfile", type=str, required=True,
                    help="Path to the injection file, should be .hdf format.")
-parser.add_argument("--output_file", type=str, required=True,
-                    help = "Path for output file to be written, should be .hdf format.")
+parser.add_argument("--output-folder", type=str, required=True,
+                    help = "Path for output file to be written.")
+parser.add_argument("--file-name")
 parser.add_argument("--signal-length", type=int, default = 4096)
-parser.add_argument("--delta-f", type=int, default = 1024)
+parser.add_argument("--delta-f", type=int, default = 512)
 parser.add_argument("--epoch", type=float, default = 0)
 parser.add_argument("-v", "--verbose", action="store_true", default=False)
 parser.add_argument("--monitor-rate", type=int, default=10)
-parser.add_argument("--DNRF", default=10e18)
+parser.add_argument("--DNRF", type=float, default=1.0e18)
+parser.add_argument("--add-noise", action='store_true', default=False)
+parser.add_argument("--noise-file")
 
 args = parser.parse_args()
 ####################################################################################################
 
 def injection_to_signal(items):
-    injector, args, n_simulations, indices = items
+    injector, args, n_simulations = items
     signal = np.zeros((n_simulations,args.signal_length))
     if args.verbose:   print("Injecting signals...")
-    for i in list(range(n_simulations))[indices[0]:indices[1]]:
+    for i in range(n_simulations):
         if args.verbose and i%args.monitor_rate==0:    print(i, " signals injected.")
-        a = TimeSeries(np.zeros(args.signal_length, dtype=np.float32), epoch=args.epoch, delta_t=1.0/args.delta_f)
+        a = TimeSeries(np.zeros(args.signal_length, dtype=np.float32),
+                        epoch=args.epoch, delta_t=1.0/args.delta_f)
         injector.apply(a, 'H1', simulation_ids=[i])
         signal[i,:] = a*args.DNRF
     return signal
 
 
 if __name__ == "__main__":
+    if not os.path.exists(args.output_folder):
+        os.makedirs(args.output_folder)
+
     injfile = args.injfile
     if args.verbose:
         print("Loaded injection file...")
-    with h5py.File(args.output_file, 'w') as f:
+
+    simulationfile = os.path.join(args.output_folder, args.file_name)+'.hdf'
+    with h5py.File(simulationfile, 'w') as f:
         with h5py.File(injfile, 'r') as f1:
             for i in f1.attrs['static_args']:
                 f['static_args/'+ i] = f1.attrs[i]
             for i in f1.keys():
                 f['parameters/' + i] = f1[i][()]
-                injector = InjectionSet(injfile)
-                n_simulations = len(injector.table)
-                items = (injector, args, n_simulations, (0,None)) 
-                signal = injection_to_signal(items)
-
-            f['signals'] = signal
+        injector = InjectionSet(injfile)
+        n_simulations = len(injector.table)
+        items = (injector, args, n_simulations) 
+        signal = injection_to_signal(items)
+        if args.add_noise:
+            samples_length = signal.shape[1]
+            with h5py.File(args.noise_file, 'r') as f2:
+                noise = f2["noise"][()]
+            indices = np.random.choice(list(range(len(noise)-samples_length)), size = n_simulations)
+            for i in range(n_simulations):
+                signal[i,:] += noise[indices[i]:indices[i]+samples_length]
+        f['signals'] = signal
     if args.verbose:
         print("Done.")

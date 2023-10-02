@@ -1,4 +1,4 @@
-import argparse, h5py, torch, pickle, logging, time
+import argparse, h5py, torch, pickle, logging, time, os
 import numpy as np
 import sbi.utils as utils
 from sbi.inference import SNPE
@@ -47,12 +47,15 @@ def add_noise(training_samples, device, args):
         
 def train(training_samples,training_parameters, bounds, device, args):
             
-    n_dim = len(bounds[0])
-    prior = utils.BoxUniform(low = bounds[0]*torch.ones(n_dim, device=device), high = bounds[1]*torch.ones(n_dim, device=device), device='cuda')
-    prior, _, priorr = process_prior(prior)
-    inference = SNPE(prior, device='cuda')
+    # n_dim = len(bounds[0])
+    # prior = utils.BoxUniform(low = bounds[0]*torch.ones(n_dim, device=device), high = bounds[1]*torch.ones(n_dim, device=device), device='cuda')
+    # prior, _, priorr = process_prior(prior)
+    inference = SNPE()
     if args.verbose: logging.info("Training...")
-    density_estimator = inference.append_simulations(training_parameters, training_samples).train()
+    density_estimator = inference.append_simulations(training_parameters,
+                                                      training_samples).train(training_batch_size=args.batch_size,
+                                                                            learning_rate=args.learning_rate,
+                                                                            show_train_summary=args.show_summary)
     neural_net = inference.build_posterior(density_estimator)
     return neural_net
     
@@ -84,7 +87,7 @@ if __name__ == "__main__":
 
     parser.add_argument("--simfile", type=str, required=True,
                        help="Path to the simulation datafile, should be .hdf format.")
-    parser.add_argument("--output-file", type=str, required=True,
+    parser.add_argument("--output-folder", type=str, required=True,
                         help = "Path for output file to be written, should be .pickle format.")
     parser.add_argument("--n-simulations", type=int, required=True,
                         help = "Number of simulations to use in training procedure.")
@@ -96,12 +99,16 @@ if __name__ == "__main__":
     parser.add_argument("--add-noise", action="store_true", default = False)
     parser.add_argument("-v", "--verbose", action="store_true", default=False)
     parser.add_argument("--logfile", type=str)
+    parser.add_argument("--batch-size", type = int, default=50)
+    parser.add_argument("--learning-rate", type = float, default=5.0e-4)
+    parser.add_argument("--show-summary", action='store_true', default=False)
     parser.add_argument("--monitor-rate", type=int, default=20)
 
 
     args = parser.parse_args()
     #########################################################################################
-    
+    if not os.path.exists(args.output_folder):
+        os.makedirs(args.output_folder)
     
     logging.basicConfig(filename=args.logfile, level=logging.DEBUG)
     if args.gpu:
@@ -120,6 +127,8 @@ if __name__ == "__main__":
     if args.verbose: logging.info("Training...")
     neural_net = train(training_samples,training_parameters,bounds,device,args)
     
-    with open(args.output_file, 'wb') as f:     pickle.dump(neural_net, f)
+    outputname = f'NN_TS{args.n_simulations:.0e}_LR{args.learning_rate:.0e}_BS{args.batch_size:.0e}.pickle'
+    with open(args.output_folder+ '/' + outputname, 'wb') as f:
+        pickle.dump(neural_net, f)
         
     if args.verbose:  logging.info("Neural network trained.")

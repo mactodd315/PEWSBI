@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-import argparse, h5py, numpy, sys
+import argparse, h5py, numpy, sys, os
 
 sys.path.append("/home/mrtodd/PEWSBI/code/train")
 
@@ -13,10 +13,9 @@ parser = argparse.ArgumentParser(prog="Plotter"
 
 
 #------------------
-parser.add_argument("--posterior", required=True,
+parser.add_argument("--posteriors-folder", required=True,
                     help = "Path to file containing posteriors to be plotted.")
-parser.add_argument("--output", type=str, required=True,
-                    help = "Path for produced plot.")
+parser.add_argument("--plot-folder", required=True)
 parser.add_argument("--plot-content", choices = ["pptest", "posterior"], required=True,
                     help = "Decision to either plot a pptest or just plot one posterior.")
 parser.add_argument("--config-file", type=str, required=True,
@@ -24,14 +23,16 @@ parser.add_argument("--config-file", type=str, required=True,
 parser.add_argument("--sample-parameter", type=str, required=True,
                         help="Parameter name to sample.")
 
-parser.add_argument("--num-posteriors", type=int,
+parser.add_argument("--save-traces", action='store_true', default=False)
+parser.add_argument("--num-posteriors", type=int, default=None,
                     help = "Number of posteriors to include in the pptest analysis.")
-parser.add_argument("--posterior-index", type=int,
+parser.add_argument("--posterior-index", type=int, default=0,
                     help = "Location of posterior desired when choosing to plot one posterior.")
-parser.add_argument("--plot-true", action="store_true",
+parser.add_argument("--plot-true", action="store_true", default=False,
                     help = "If plotting posterior, plot true parameter or not.")
 parser.add_argument("--plot-title", type=str,
                     help = "Title to put on plot.")
+parser.add_argument("--legend", action="store_true", default=False)
 parser.add_argument("-v", "--verbose", action="store_true", default=False)
 
 args = parser.parse_args()
@@ -47,49 +48,75 @@ def is_true(credibility, cumulative, parameter, config_file, config_parameter, b
         return False
 #--------------------------------
 
-def run_pp_test(dataset, parameters, n_intervals = 21, **kwargs):
+def run_pp_test(hdffile,args, s1, n_intervals = 21, **kwargs):
     """This pp_test function initializes linearly spaced credible intervals, and then evaluates the cumulative distribution function to determine the "credibility" at that interval. It generates the plot WITHIN this function, so plt.show() must be called after the function is called.
     """
-    n_intervals = 21
+    dataset = hdffile['posteriors'][:argsd['num_posteriors'],:]
+    parameters = hdffile['true_parameters'][:argsd['num_posteriors']]
+
     credible_intervals = numpy.linspace(0,1,n_intervals)
     trues_in_intervals = numpy.zeros(n_intervals)
     cumulatives = [dataset[j,:].cumsum() for j in range(len(dataset))]
     for i in range(1,n_intervals-1):
         credibility = credible_intervals[i]
-        trues_list = [1 if is_true(credibility, cumulatives[j], parameters[:,j], config_file=kwargs['config_file'], config_parameter= kwargs['parameter'], bins=dataset.shape[1]) else 0 for j in range(len(dataset)) ]
+        trues_list = [1 if is_true(credibility, cumulatives[j], parameters[:,j],
+                                    config_file=argsd['config_file'],
+                                    config_parameter= argsd['sample_parameter'],
+                                    bins=dataset.shape[1]) else 0 for j in range(len(dataset)) ]
         trues_in_intervals[i] = sum(trues_list)/dataset.shape[0]
     trues_in_intervals[-1] = 1
-    if 'label' in kwargs.keys():
-        labeltxt = str(kwargs['label'])
-    plt.plot(credible_intervals, trues_in_intervals, label = labeltxt)
-    return 0
-#----------------------
-def plot_posterior(file, posterior_num, plot_true = True, **kwargs):
-    posterior = file['posteriors'][posterior_num,:]
-    bounds = get_bounds_from_config(kwargs['config_file'], kwargs['parameter'])
-    theta = numpy.linspace(bounds[0],bounds[1],len(posterior))
-    plt.plot(theta, posterior)
-    if plot_true:
-        plt.axvline(file["true_parameters"][:,posterior_num])
     
-    return 0
+    details = argsd['posterior_name'][10:-4]
+    if argsd['save_traces']:
+        trace_name = "traces"+details
+        with h5py.File(argsd['parent_folder']+'/'+'plots/'+trace_name, 'w') as f:
+            f['traces'] = (credible_intervals, trues_in_intervals)
+            f['label'] = details
+    s1.plot(credible_intervals, trues_in_intervals, label=details)
+    return s1
+
+
+#----------------------
+def plot_posterior(file,s1, argsd):
+    """Saves posterior traces to designated file
+
+    Args:
+        file (hd5 object): .hdf file object containing posterior data
+        args (_type_): _description_
+    """
+    posterior = file['posteriors'][argsd['posterior_index'],:]
+    bounds = get_bounds_from_config(argsd['config_file'], argsd['sample_parameter'])
+    theta = numpy.linspace(bounds[0],bounds[1],len(posterior))
+    s1.plot(theta, posterior, label=argsd['posterior_name'][10:-4]) 
+    return s1
 #--------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    args_dict = vars(args)
-    if args.plot_content == "pptest":
-        with h5py.File(args.posterior, 'r') as f:
-            run_pp_test(f['posteriors'][:args.num_posteriors,:],
-                        f['true_parameters'][:args.num_posteriors],
-                        label = f['posteriors'].attrs['training_size'],
-                        config_file = args.config_file,
-                        parameter = args.sample_parameter)
+    if not os.path.exists(args.plot_folder):
+            os.makedirs(args.plot_folder)
+
+    argsd = vars(args)
+    argsd["parent_folder"] = os.path.join(args.plot_folder,'..')
+
+    posteriors = [f for f in os.listdir(args.posteriors_folder) if f.split('.')[1]=='hdf']
+
+    fig, s1 = plt.subplots(1,1)
+    if argsd['plot_content'] == "pptest":
+        for each in posteriors:
+            argsd['posterior_name'] = each
+            with h5py.File(args.posteriors_folder+'/'+each, 'r') as f:
+                run_pp_test(f,  argsd, s1
+                            )
+        plt.legend()
+        plt.savefig(os.path.join(args.plot_folder,'pptest.png'))
     if args.plot_content == "posterior":
-        with h5py.File(args.posterior, 'r') as f:
-            plot_posterior(f,args.posterior_index, plot_true = args.plot_true,
-                          config_file = args.config_file,
-                          parameter = args.sample_parameter)
-    plt.legend()
-    if 'plot_title' in args_dict.keys():
-        plt.title(args.plot_title)
-    plt.savefig(args.output)
+        for each in posteriors:
+            argsd['posterior_name'] = each
+            with h5py.File(os.path.join(args.posteriors_folder,each), 'r') as f:
+                plot_posterior(f,s1,argsd)
+        if argsd['plot_true']:
+            with h5py.File(os.path.join(args.posteriors_folder,posteriors[0]), 'r') as f:
+                s1.axvline(f['true_parameters'][0][int(argsd['posterior_index'])], color='k')
+        plt.legend()
+        plt.savefig(argsd['parent_folder']+f'/plots/posterior{argsd["posterior_index"]}.png')  
+    
