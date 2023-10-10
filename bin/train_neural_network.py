@@ -5,7 +5,38 @@ from sbi.inference import SNPE
 from sbi.utils.user_input_checks import process_prior
 
 import configparser
+def parse_arguments():
+    parser = argparse.ArgumentParser(
+                        prog = "Trains a Neural Network: ",
+                        description = "Takes in simulation data and desired training parameters, and trains a neural network, which is then pickled in indicated output file (.pickle).",
+                        )
 
+    parser.add_argument("--sim-filename", type=str, required=True,
+                       help="Filename of the datafile containing the simulations for training, "
+                        +"assumes it is found in simulations/ folder.\nIf not, specify fullpath name.")
+    parser.add_argument("--output-folder", type=str, required=True,
+                        help = "Path to output folder to store pickled neural networks.")
+    parser.add_argument("--n-simulations", type=int, required=True,
+                        help = "Number of simulations to use in training procedure. Cannot exceed number of simulations in datafile.")
+    parser.add_argument("--ini-filename", type=str, required=True,
+                        help = "Path to .ini filed used to make injection.")
+    
+    parser.add_argument("--add-noise", action="store_true", default = False)
+    parser.add_argument("--noisefile", type=str,
+                        help = "Path to noise file.")
+    
+    parser.add_argument("--gpu", action="store_true", default=False,
+                        help="Decision to train on gpu, if available. Neural net is brought to cpu after training for pickling.")
+    parser.add_argument("--batch-size", type = int, default=50)
+    parser.add_argument("--learning-rate", type = float, default=5.0e-4)
+    parser.add_argument("--show-summary", action='store_true', default=False)
+
+    parser.add_argument("-v", "--verbose", action="store_true", default=False)
+    parser.add_argument("--monitor-rate", type=int, default=20)
+    parser.add_argument("--logfile", type=str)
+
+    args = parser.parse_args()
+    return args
 
 def get_training_data(sim_filename, device, args):
     
@@ -79,34 +110,7 @@ def eta(timing, current, total):
 
 
 if __name__ == "__main__":
-    ########################################################################################
-    parser = argparse.ArgumentParser(
-                        prog = "Trains a Neural Network: ",
-                        description = "Takes in simulation data and desired training parameters, and trains a neural network, which is then pickled in indicated output file (.pickle).",
-                        )
-
-    parser.add_argument("--simfile", type=str, required=True,
-                       help="Path to the simulation datafile, should be .hdf format.")
-    parser.add_argument("--output-folder", type=str, required=True,
-                        help = "Path for output file to be written, should be .pickle format.")
-    parser.add_argument("--n-simulations", type=int, required=True,
-                        help = "Number of simulations to use in training procedure.")
-    parser.add_argument("--inifile", type=str, required=True,
-                        help = "Path to .ini filed used to make injection.")
-    parser.add_argument("--noisefile", type=str,
-                        help = "Path to noise file.")
-    parser.add_argument("--gpu", action="store_true", default=False)
-    parser.add_argument("--add-noise", action="store_true", default = False)
-    parser.add_argument("-v", "--verbose", action="store_true", default=False)
-    parser.add_argument("--logfile", type=str)
-    parser.add_argument("--batch-size", type = int, default=50)
-    parser.add_argument("--learning-rate", type = float, default=5.0e-4)
-    parser.add_argument("--show-summary", action='store_true', default=False)
-    parser.add_argument("--monitor-rate", type=int, default=20)
-
-
-    args = parser.parse_args()
-    #########################################################################################
+    args = parse_arguments()
     if not os.path.exists(args.output_folder):
         os.makedirs(args.output_folder)
     
@@ -116,13 +120,16 @@ if __name__ == "__main__":
     else:
         device = torch.device('cpu')
 
-    training_samples, training_parameters, variable_parameter_names = get_training_data(args.simfile, device, args)
+    simfile = os.path.join(args.output_folder,'../simulations',args.sim_filename+'.hdf')
+    training_samples, training_parameters, variable_parameter_names = get_training_data(simfile, device, args)
     
     if args.add_noise: add_noise(training_samples, device, args)
         
 
     if args.verbose:  logging.info("Getting bounds...")
-    bounds = [torch.tensor([get_bounds_from_config(args.inifile,each)[0] for each in variable_parameter_names],device = device), torch.tensor([get_bounds_from_config(args.inifile,each)[1] for each in variable_parameter_names],device = device)]
+    inifile = os.path.join(args.output_folder, '../code', args.ini_filename+'.ini')
+    bounds = [torch.tensor([get_bounds_from_config(inifile,each)[0] for each in variable_parameter_names],device = device),
+               torch.tensor([get_bounds_from_config(inifile,each)[1] for each in variable_parameter_names],device = device)]
     
     if args.verbose: logging.info("Training...")
     neural_net = train(training_samples,training_parameters,bounds,device,args)

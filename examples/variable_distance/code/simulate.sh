@@ -10,10 +10,10 @@ source ~/Projects/machine_learning_sbi/sbi_env/bin/activate
 #     --ini-file ~/Projects/machine_learning_sbi/PEWSBI/examples/variable_distance/code/injection1d.ini \
 #     --verbose 
 
-#generate injection parameters file
+# # generate injection parameters file
 # pycbc_create_injections --verbose \
 #     --config-files ~/Projects/machine_learning_sbi/PEWSBI/examples/variable_distance/code/injection1d.ini \
-#     --ninjections 100 \
+#     --ninjections 10 \
 #     --seed 0 \
 #     --output-file ~/Projects/machine_learning_sbi/PEWSBI/examples/variable_distance/simulations/injection1d.hdf \
 #     --variable-params-section variable_params \
@@ -24,12 +24,13 @@ source ~/Projects/machine_learning_sbi/sbi_env/bin/activate
 #generate simulation data
 python ~/Projects/machine_learning_sbi/PEWSBI/bin/simulate_data.py \
     --verbose \
-    --signal-length 2048 \
-    --delta-f 512 \
+    --signal-length 12311 \
+    --add-noise \
+    --noise-file ~/Projects/machine_learning_sbi/PEWSBI/examples/variable_distance/simulations/noise.hdf\
+    --delta-f 1024 \
     --monitor-rate 20 \
     --injfile ~/Projects/machine_learning_sbi/PEWSBI/examples/variable_distance/simulations/injection1d.hdf \
     --output-folder ~/Projects/machine_learning_sbi/PEWSBI/examples/variable_distance/simulations \
-    --file-name observations1e2 \
-    --add-noise \
-    --noise-file ~/Projects/machine_learning_sbi/PEWSBI/examples/variable_distance/simulations/noise.hdf
+    --file-name tests \
+    --snr
 

@@ -1,5 +1,6 @@
 from  pycbc.inject import InjectionSet
-from pycbc.types import TimeSeries, zeros
+from pycbc.types import TimeSeries, zeros, array
+from pycbc import psd, filter, waveform
 import argparse, h5py, os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -12,32 +13,41 @@ parser = argparse.ArgumentParser(
                     )
 
 parser.add_argument("--injfile", type=str, required=True,
-                   help="Path to the injection file, should be .hdf format.")
+                   help="Name of injection file for simulations -- assumes same folder as output folder.\nIf not, provide full path.")
 parser.add_argument("--output-folder", type=str, required=True,
-                    help = "Path for output file to be written.")
-parser.add_argument("--file-name")
-parser.add_argument("--signal-length", type=int, default = 4096)
-parser.add_argument("--delta-f", type=int, default = 512)
-parser.add_argument("--epoch", type=float, default = 0)
-parser.add_argument("-v", "--verbose", action="store_true", default=False)
-parser.add_argument("--monitor-rate", type=int, default=10)
-parser.add_argument("--DNRF", type=float, default=1.0e18)
+                    help = "Path to folder where simulation file will be placed (will create folder if not found).")
+parser.add_argument("--file-name", type=str, default='simulations',
+                    help="Name of simulations data file (do not need to include .hdf).")
+
+parser.add_argument("--signal-length", type=int, default = 4096,
+                    help="Number of data points in each simulation.")
+parser.add_argument("--delta-f", type=int, default = 512,
+                    help="1/delta_f gives the time step used for the signal simulation.")
+parser.add_argument("--epoch", type=float, default = 0,
+                    help="Start 'time' in the simulation, user should check tc in .ini file for appropriate overlap.")
+parser.add_argument("--DNRF", type=float, default=1.0e18,
+                    help="Dynamic range factor used to make training easier.")
+
 parser.add_argument("--add-noise", action='store_true', default=False)
 parser.add_argument("--noise-file")
+
+parser.add_argument("-v", "--verbose", action="store_true", default=False)
+parser.add_argument("--monitor-rate", type=int, default=10)
+parser.add_argument("--snr", action='store_true', default=False)
 
 args = parser.parse_args()
 ####################################################################################################
 
 def injection_to_signal(items):
     injector, args, n_simulations = items
-    signal = np.zeros((n_simulations,args.signal_length))
+    signal = np.ndarray((n_simulations),dtype=TimeSeries)
     if args.verbose:   print("Injecting signals...")
     for i in range(n_simulations):
         if args.verbose and i%args.monitor_rate==0:    print(i, " signals injected.")
-        a = TimeSeries(np.zeros(args.signal_length, dtype=np.float32),
+        a = TimeSeries(np.zeros(args.signal_length, dtype=np.float64),
                         epoch=args.epoch, delta_t=1.0/args.delta_f)
         injector.apply(a, 'H1', simulation_ids=[i])
-        signal[i,:] = a*args.DNRF
+        signal[i] = a*args.DNRF
     return signal
 
 
@@ -60,13 +70,30 @@ if __name__ == "__main__":
         n_simulations = len(injector.table)
         items = (injector, args, n_simulations) 
         signal = injection_to_signal(items)
+        signal[0].plot()
+        plt.savefig("signal1.png")
+        #------ got signal
+
+
         if args.add_noise:
-            samples_length = signal.shape[1]
+            noisysignal = np.ndarray((n_simulations),dtype=TimeSeries)
+            samples_length = len(signal[0])
             with h5py.File(args.noise_file, 'r') as f2:
                 noise = f2["noise"][()]
             indices = np.random.choice(list(range(len(noise)-samples_length)), size = n_simulations)
             for i in range(n_simulations):
-                signal[i,:] += noise[indices[i]:indices[i]+samples_length]
-        f['signals'] = signal
+                noisysignal[i] = signal[i] + noise[indices[i]:indices[i]+samples_length]
+        if args.snr:
+            snrs = np.zeros(n_simulations)
+            f_low = 10.0
+            flen = int(2048/.25) + 1
+            psd_series = psd.aLIGOZeroDetHighPower(flen,signal[0].delta_f,f_low)*args.DNRF**2
+            for i in range(n_simulations):
+                # template = waveform.get_td_waveform(mass1 = 200,mass2 = 200,f_lower = 10,approximant = 'SEOBNRv4',delta_t=1/512, inclination=1.547)[0]
+                snrs[i] = filter.sigma(noisysignal[i],
+                                                psd=psd_series,low_frequency_cutoff=f_low)
+            print(snrs)
+        f['signals'] = [each.numpy() for each in signal]
+        f['snrs'] = snrs
     if args.verbose:
         print("Done.")
