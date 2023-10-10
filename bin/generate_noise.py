@@ -27,7 +27,10 @@ parser.add_argument("-v", "--verbose", action="store_true", default=False)
 args = parser.parse_args()
 
 def generate_noise(args):
-    noisefile = os.path.join(args.output_folder, 'noise.hdf')
+    noisefile = os.path.join(args.output_folder,'noise.hdf')
+    if not os.path.exists(args.output_folder):
+        os.mkdir(args.output_folder)
+        
     f = h5py.File(noisefile,'w')
     config = configparser.ConfigParser()
     config.read(args.ini_file)

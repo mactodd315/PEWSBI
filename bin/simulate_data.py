@@ -89,11 +89,10 @@ if __name__ == "__main__":
             flen = int(2048/.25) + 1
             psd_series = psd.aLIGOZeroDetHighPower(flen,signal[0].delta_f,f_low)*args.DNRF**2
             for i in range(n_simulations):
-                # template = waveform.get_td_waveform(mass1 = 200,mass2 = 200,f_lower = 10,approximant = 'SEOBNRv4',delta_t=1/512, inclination=1.547)[0]
                 snrs[i] = filter.sigma(noisysignal[i],
                                                 psd=psd_series,low_frequency_cutoff=f_low)
-            print(snrs)
+            f['snrs'] = snrs
+            
         f['signals'] = [each.numpy() for each in signal]
-        f['snrs'] = snrs
     if args.verbose:
         print("Done.")
