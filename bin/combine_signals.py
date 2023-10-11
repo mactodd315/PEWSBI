@@ -18,7 +18,7 @@ def zip_signals(simfile, sim_shape):
     return signals,parameters
 
 def write_signals(outputfile, simfile, sim_shape):
-    with h5py.File(args.output_simfile, 'w') as f:
+    with h5py.File(outputfile, 'w') as f:
         signals,parameters = zip_signals(simfile,sim_shape)
         #write results to file
         f['signals'] = signals
@@ -50,6 +50,6 @@ if __name__ == "__main__":
     args.sim_shape = [int(each) for each in sim_shape]
     
     write_signals(args.output_simfile, args.simfile, args.sim_shape)
-    for i in range(args.n_simulations):
-        os.remove(args.simfile+str(i)+'.hdf')
-        os.remove(args.injfile+str(i)+'.hdf')
+    # for i in range(args.n_simulations):
+    #     os.remove(args.simfile+str(i)+'.hdf')
+    #     os.remove(args.injfile+str(i)+'.hdf')
