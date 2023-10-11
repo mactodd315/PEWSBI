@@ -9,11 +9,11 @@ def zip_signals(simfile, sim_shape):
             if i==0:
                 for j in f1['static_args'].keys():
                     f['static_args/'+ j] = f1['static_args'][j][()]
-                for j in f1['parameters'].keys():
-                    if j in parameters.keys():
-                        parameters[j] = np.concatenate((parameters[j],f1['parameters/'+j][:]))
-                    else:
-                        parameters[j] = f1['parameters/'+j][:]
+            for j in f1['parameters'].keys():
+                if j in parameters.keys():
+                    parameters[j] = np.concatenate((parameters[j],f1['parameters/'+j][:]))
+                else:
+                    parameters[j] = f1['parameters/'+j][:]
             signals[i*args.sim_shape[0]:(i+1)*args.sim_shape[0],:] = f1['signals'][:,:]
     return signals,parameters
 
