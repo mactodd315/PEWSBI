@@ -20,8 +20,9 @@ parser.add_argument("--plot-content", choices = ["pptest", "posterior"], require
                     help = "Decision to either plot a pptest or just plot one posterior.")
 parser.add_argument("--config-file", type=str, required=True,
                         help="Path to config file (.ini).")
-parser.add_argument("--sample-parameter", type=str, required=True,
+parser.add_argument("--sample-parameters", type=str,
                         help="Parameter name to sample.")
+parser.add_argument("--sample-parameter")
 
 parser.add_argument("--save-traces", action='store_true', default=False)
 parser.add_argument("--num-posteriors", type=int, default=None,
@@ -38,8 +39,7 @@ parser.add_argument("-v", "--verbose", action="store_true", default=False)
 args = parser.parse_args()
 
 ######################################################################
-def is_true(credibility, cumulative, parameter, config_file, config_parameter, bins):
-    bounds = get_bounds_from_config(config_file, config_parameter)
+def is_true(credibility, cumulative, parameter, bounds, bins):
     theta = numpy.linspace(bounds[0],bounds[1],bins)
     credibility_bounds = theta[numpy.searchsorted(cumulative,[0,credibility])]
     if parameter<= credibility_bounds[1] and parameter >= credibility_bounds[0]:
@@ -48,25 +48,25 @@ def is_true(credibility, cumulative, parameter, config_file, config_parameter, b
         return False
 #--------------------------------
 
-def run_pp_test(hdffile,args, s1, n_intervals = 21, **kwargs):
+def run_pp_test(hdffile, key, args, s1, n_intervals = 21, **kwargs):
     """This pp_test function initializes linearly spaced credible intervals, and then evaluates the cumulative distribution function to determine the "credibility" at that interval. It generates the plot WITHIN this function, so plt.show() must be called after the function is called.
     """
-    dataset = hdffile['posteriors'][:argsd['num_posteriors'],:]
-    parameters = hdffile['true_parameters'][:argsd['num_posteriors']]
+    dataset = hdffile['posteriors/'+key][:argsd['num_posteriors'],:]
+    parameters = hdffile['true_parameters/'+key][:argsd['num_posteriors']]
+    bounds = hdffile['bounds/'+key][:]
 
     credible_intervals = numpy.linspace(0,1,n_intervals)
     trues_in_intervals = numpy.zeros(n_intervals)
     cumulatives = [dataset[j,:].cumsum() for j in range(len(dataset))]
     for i in range(1,n_intervals-1):
         credibility = credible_intervals[i]
-        trues_list = [1 if is_true(credibility, cumulatives[j], parameters[:,j],
-                                    config_file=argsd['config_file'],
-                                    config_parameter= argsd['sample_parameter'],
+        trues_list = [1 if is_true(credibility, cumulatives[j], parameters[j],
+                                    bounds,
                                     bins=dataset.shape[1]) else 0 for j in range(len(dataset)) ]
         trues_in_intervals[i] = sum(trues_list)/dataset.shape[0]
     trues_in_intervals[-1] = 1
     
-    details = argsd['posterior_name'][10:-4]
+    details = argsd['posterior_name'][10:-4]+'_'+key
     if argsd['save_traces']:
         trace_name = "traces"+details
         with h5py.File(argsd['parent_folder']+'/'+'plots/'+trace_name, 'w') as f:
@@ -84,10 +84,13 @@ def plot_posterior(file,s1, argsd):
         file (hd5 object): .hdf file object containing posterior data
         args (_type_): _description_
     """
-    posterior = file['posteriors'][argsd['posterior_index'],:]
-    bounds = get_bounds_from_config(argsd['config_file'], argsd['sample_parameter'])
+    posterior = file['posteriors/'+argsd['sample_parameter']][argsd['posterior_index'],:]
+    bounds = file['bounds/'+argsd['sample_parameter']]
     theta = numpy.linspace(bounds[0],bounds[1],len(posterior))
-    s1.plot(theta, posterior, label=argsd['posterior_name'][10:-4]) 
+    s1.plot(theta, posterior, label=argsd['posterior_name'][10:-4])
+    s1.set_xlabel(argsd['sample_parameter'])
+    s1.set_ylabel('Probability')
+
     return s1
 #--------------------------------------------------------------------------
 
@@ -105,8 +108,9 @@ if __name__ == "__main__":
         for each in posteriors:
             argsd['posterior_name'] = each
             with h5py.File(args.posteriors_folder+'/'+each, 'r') as f:
-                run_pp_test(f,  argsd, s1
-                            )
+                keys = argsd['sample_parameters'].split(',')
+                for key in keys:
+                    s1 = run_pp_test(f, key, argsd, s1)
         plt.legend()
         plt.savefig(os.path.join(args.plot_folder,'pptest.png'))
     if args.plot_content == "posterior":
@@ -116,7 +120,7 @@ if __name__ == "__main__":
                 plot_posterior(f,s1,argsd)
         if argsd['plot_true']:
             with h5py.File(os.path.join(args.posteriors_folder,posteriors[0]), 'r') as f:
-                s1.axvline(f['true_parameters'][0][int(argsd['posterior_index'])], color='k')
+                s1.axvline(f['true_parameters/'+argsd['sample_parameter']][int(argsd['posterior_index'])], color='k')
         plt.legend()
-        plt.savefig(argsd['parent_folder']+f'/plots/posterior{argsd["posterior_index"]}.png')  
+        plt.savefig(argsd['parent_folder']+f'/plots/posterior{argsd["posterior_index"]}_{argsd["sample_parameter"]}.png')  
     

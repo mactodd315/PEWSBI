@@ -1,21 +1,21 @@
 #!/bin/bash
 
 #use sbi_env environment
-source ~/Projects/machine_learning_sbi/sbi_env/bin/activate
+source ~/miniconda3/bin/activate sbi_env
 
-python ~/Projects/machine_learning_sbi/PEWSBI/bin/plot.py \
-    --posteriors-folder ~/Projects/machine_learning_sbi/PEWSBI/examples/variable_distance/posteriors/ \
-    --plot-folder ~/Projects/machine_learning_sbi/PEWSBI/examples/variable_distance/plots \
-    --plot-content 'pptest' \
-    --config-file  ~/Projects/machine_learning_sbi/PEWSBI/examples/variable_distance/code/injection1d.ini \
-    --sample-parameter 'distance' \
-    --num-posteriors 100
+# python ~/PEWSBI/bin/plot.py \
+#     --posteriors-folder ~/PEWSBI/examples/var_dis_totalmass/posteriors/ \
+#     --plot-folder ~/PEWSBI/examples/var_dis_totalmass/plots \
+#     --plot-content 'pptest' \
+#     --config-file  ~/PEWSBI/examples/var_dis_totalmass/code/injection2d.ini \
+#     --sample-parameters 'distance,mass1' \
+#     --num-posteriors 100
 
-python ~/Projects/machine_learning_sbi/PEWSBI/bin/plot.py \
-    --posteriors-folder ~/Projects/machine_learning_sbi/PEWSBI/examples/variable_distance/posteriors/ \
-    --plot-folder ~/Projects/machine_learning_sbi/PEWSBI/examples/variable_distance/plots \
+python ~/PEWSBI/bin/plot.py \
+    --posteriors-folder ~/PEWSBI/examples/var_dis_totalmass/posteriors/ \
+    --plot-folder ~/PEWSBI/examples/var_dis_totalmass/plots \
     --plot-content 'posterior' \
-    --config-file  ~/Projects/machine_learning_sbi/PEWSBI/examples/variable_distance/code/injection1d.ini \
+    --config-file  ~/PEWSBI/examples/var_dis_totalmass/code/injection12.ini \
     --sample-parameter 'distance' \
     --posterior-index 0 \
     --plot-true

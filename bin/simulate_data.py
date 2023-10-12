@@ -70,8 +70,6 @@ if __name__ == "__main__":
         n_simulations = len(injector.table)
         items = (injector, args, n_simulations) 
         signal = injection_to_signal(items)
-        signal[0].plot()
-        plt.savefig("signal1.png")
         #------ got signal
 
 
