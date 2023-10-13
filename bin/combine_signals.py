@@ -9,16 +9,16 @@ def zip_signals(simfile, sim_shape):
             if i==0:
                 for j in f1['static_args'].keys():
                     f['static_args/'+ j] = f1['static_args'][j][()]
-                for j in f1['parameters'].keys():
-                    if j in parameters.keys():
-                        parameters[j] = np.concatenate((parameters[j],f1['parameters/'+j][:]))
-                    else:
-                        parameters[j] = f1['parameters/'+j][:]
+            for j in f1['parameters'].keys():
+                if j in parameters.keys():
+                    parameters[j] = np.concatenate((parameters[j],f1['parameters/'+j][:]))
+                else:
+                    parameters[j] = f1['parameters/'+j][:]
             signals[i*args.sim_shape[0]:(i+1)*args.sim_shape[0],:] = f1['signals'][:,:]
     return signals,parameters
 
 def write_signals(outputfile, simfile, sim_shape):
-    with h5py.File(args.output_simfile, 'w') as f:
+    with h5py.File(outputfile, 'w') as f:
         signals,parameters = zip_signals(simfile,sim_shape)
         #write results to file
         f['signals'] = signals
@@ -50,6 +50,6 @@ if __name__ == "__main__":
     args.sim_shape = [int(each) for each in sim_shape]
     
     write_signals(args.output_simfile, args.simfile, args.sim_shape)
-    for i in range(args.n_simulations):
-        os.remove(args.simfile+str(i)+'.hdf')
-        os.remove(args.injfile+str(i)+'.hdf')
+    # for i in range(args.n_simulations):
+    #     os.remove(args.simfile+str(i)+'.hdf')
+    #     os.remove(args.injfile+str(i)+'.hdf')
