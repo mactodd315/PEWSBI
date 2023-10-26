@@ -15,6 +15,8 @@ parser = argparse.ArgumentParser(prog="Plotter"
 #------------------
 parser.add_argument("--samples-folder", required=True,
                     help = "Path to file containing posteriors to be plotted.")
+parser.add_argument("--sample-name", default = None,
+                    help = "Sample name to plot or run pptest.")
 parser.add_argument("--plot-folder", required=True)
 parser.add_argument("--plot-content", choices = ["pptest", "posterior"], required=True,
                     help = "Decision to either plot a pptest or just plot one posterior.")
@@ -82,10 +84,9 @@ def plot_posterior(file,s1, argsd):
         file (hd5 object): .hdf file object containing posterior data
         args (_type_): _description_
     """
-    posterior = file['posteriors/'+argsd['sample_parameter']][argsd['posterior_index'],:]
-    bounds = file['bounds/'+argsd['sample_parameter']]
-    theta = numpy.linspace(bounds[0],bounds[1],len(posterior))
-    s1.plot(theta, posterior, label=argsd['posterior_name'][10:-4])
+    samples = file['samples/'+argsd['sample_parameter']][argsd['posterior_index'],:]
+    bounds = file['bounds/'+argsd['sample_parameter']][:]
+    s1.hist(samples, 150, range=bounds, density=True)
     s1.set_xlabel(argsd['sample_parameter'])
     s1.set_ylabel('Probability')
 
@@ -98,18 +99,28 @@ if __name__ == "__main__":
 
     argsd = vars(args)
     argsd["parent_folder"] = os.path.join(args.plot_folder,'..')
-
-    samples = [f for f in os.listdir(args.samples_folder) if f.split('.')[1]=='hdf']
+    
+    if not argsd['sample_name'] == None:
+        samples = [os.path.join(argsd["samples_folder"], argsd["sample_name"])]
+    else:
+        samples = [os.path.join(argsd['samples_folder'], f) for f in os.listdir(args.samples_folder) if f.split('.')[1]=='hdf']
 
     fig, s1 = plt.subplots(1,1)
     if argsd['plot_content'] == "pptest":
-        for each in samples:
-            argsd['sample_name'] = each
-            with h5py.File(args.samples_folder+'/'+each, 'r') as f:
+        if not argsd['sample_name'] == None:
+            with h5py.File(samples[0], 'r') as f:
                 keys = argsd['sample_parameters'].split(',')
                 for key in keys:
                     s1 = run_pp_test(f, key, argsd, s1)
-        s1.set_title(f"PP Test for {argsd['sample_name']}")
+            s1.set_title(f"PP Test for {argsd['sample_name']}")
+        else:
+            for each in samples:
+                argsd['sample_name'] = each
+                with h5py.File(each, 'r') as f:
+                    keys = argsd['sample_parameters'].split(',')
+                    for key in keys:
+                        s1 = run_pp_test(f, key, argsd, s1)
+            s1.set_title(f"PP Test")
         s1.set_xlabel("Credible Interval")
         s1.set_ylabel("Credibility")
         s1.grid(True)
@@ -117,12 +128,11 @@ if __name__ == "__main__":
         plt.savefig(os.path.join(args.plot_folder,'pptest.png'))
     if args.plot_content == "posterior":
         for each in samples:
-            argsd['posterior_name'] = each
-            with h5py.File(os.path.join(args.posteriors_folder,each), 'r') as f:
+            argsd['sample_name'] = each
+            with h5py.File(os.path.join(args.samples_folder,each), 'r') as f:
                 plot_posterior(f,s1,argsd)
         if argsd['plot_true']:
-            with h5py.File(os.path.join(args.posteriors_folder,posteriors[0]), 'r') as f:
+            with h5py.File(os.path.join(args.samples_folder,samples[0]), 'r') as f:
                 s1.axvline(f['true_parameters/'+argsd['sample_parameter']][int(argsd['posterior_index'])], color='k')
-        plt.legend()
-        plt.savefig(argsd['parent_folder']+f'/plots/posterior{argsd["posterior_index"]}_{argsd["sample_parameter"]}.png')  
+        plt.savefig(f'{argsd["plot_folder"]}/posterior{argsd["posterior_index"]}_{argsd["sample_parameter"]}.png')  
     

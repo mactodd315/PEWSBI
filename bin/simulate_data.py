@@ -43,11 +43,12 @@ def injection_to_signal(items):
     signal = np.ndarray((n_simulations),dtype=TimeSeries)
     if args.verbose:   print("Injecting signals...")
     for i in range(n_simulations):
-        if args.verbose and i%args.monitor_rate==0:    print(i, " signals injected.")
-        a = TimeSeries(np.zeros(args.signal_length, dtype=np.float64),
+        if args.verbose and i%args.monitor_rate==0:    print(f"\r{i} signals injected.", end='')
+        a = TimeSeries(np.zeros(args.signal_length, dtype=np.float32),
                         epoch=args.epoch, delta_t=1.0/args.delta_f)
         injector.apply(a, 'H1', simulation_ids=[i])
         signal[i] = a*args.DNRF
+    if args.verbose and i%args.monitor_rate==0:    print(f"\r{i} signals injected.")
     return signal
 
 
@@ -67,6 +68,7 @@ if __name__ == "__main__":
             for i in f1.keys():
                 f['parameters/' + i] = f1[i][()]
         injector = InjectionSet(injfile)
+        if args.verbose: print("Injection Table: ", injector.table)
         n_simulations = len(injector.table)
         items = (injector, args, n_simulations) 
         signal = injection_to_signal(items)
@@ -81,6 +83,7 @@ if __name__ == "__main__":
             indices = np.random.choice(list(range(len(noise)-samples_length)), size = n_simulations)
             for i in range(n_simulations):
                 noisysignal[i] = signal[i] + noise[indices[i]:indices[i]+samples_length]
+            signal = noisysignal
         if args.snr:
             snrs = np.zeros(n_simulations)
             f_low = 10.0

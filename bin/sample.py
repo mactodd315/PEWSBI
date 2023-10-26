@@ -7,10 +7,9 @@ def get_bounds_from_config(filepath):
     cp = configparser.ConfigParser()
     cp.read(filepath)
     param_prior = [each for each in cp.sections() if each.split('-')[0]=='prior']
-    bounds = numpy.zeros((len(param_prior),2))
+    bounds = numpy.zeros((2,len(param_prior)))
 
     parameters = []
-    
     for i in range(len(param_prior)):
         each = param_prior[i]
         parameter = each.split('-')[1]
