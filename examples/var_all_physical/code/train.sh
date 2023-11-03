@@ -8,10 +8,11 @@ example_folder="/examples/var_all_physical"
 
 #train neural_network
 python $current_folder/bin/train_neural_network.py \
-   --sim-filename trainings_1e4 \
-   --output-folder $current_folder$example_folder/neural_nets \
+   --simulation-file $current_folder$example_folder/simulations/trainings.hdf \
+   --output-file $current_folder$example_folder/neural_nets/NN1.pickle \
    --n-simulations 10000 \
-   --ini-filename injection \
+   --training-parameters 'total_mass' \
+   --ini-file $current_folder$example_folder/code/injection.ini \
    --batch-size 1000 \
    --learning-rate 5e-5 \
    --show-summary 

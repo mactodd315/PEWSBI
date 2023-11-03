@@ -3,10 +3,10 @@ import torch, numpy, pickle, h5py, argparse, sys, configparser, os
 
 sys.path.append("/home/mrtodd/PEWSBI/code/train")
 
-def get_bounds_from_config(filepath):
+def get_bounds_from_config(filepath):    
     cp = configparser.ConfigParser()
     cp.read(filepath)
-    param_prior = [each for each in cp.sections() if each.split('-')[0]=='prior']
+    param_prior = [each for each in cp.sections() if 'params' not in each.split('_')]
     bounds = numpy.zeros((2,len(param_prior)))
 
     parameters = []
@@ -17,6 +17,7 @@ def get_bounds_from_config(filepath):
         bounds[0, i] = float(cp[each]['min-'+parameter])
         bounds[1, i] = float(cp[each]['max-'+parameter])
     return bounds, parameters
+
 def details(neuralnet):
     dets = {}
     neuralnet = neuralnet.split('.')[0]
@@ -26,13 +27,15 @@ def details(neuralnet):
     dets['learning_rate'] = l[2][2:]
     dets['batch_size'] = l[3][2:]
     return dets
-def get_samples(net, observations, args):
-    samples = [net.sample((args.n_samples,), x=each) for each in observations]
+def get_samples(net, observations, num_params, args):
+    samples = numpy.ndarray((len(observations), args.n_samples, num_params))
+    for i in range(len(observations)):
+        samples[i,:,:] = numpy.asanyarray(net.sample((args.n_samples,), x=observations[i]))
     
     return samples
 def fetch_observation(file, args):
-    observations = torch.as_tensor(f['signals'][:args.observation_num,:])
-    true_parameters = [f['parameters'][key][:args.observation_num] for key in f['parameters'].keys()]
+    observations = torch.as_tensor(file['signals'][:args.observation_num,:])
+    true_parameters = [file['parameters'][i][:args.observation_num] for i in f['parameters'].keys()]
     return observations, true_parameters
 
 
@@ -53,6 +56,9 @@ if __name__ == "__main__":
                         help="Path to observation file (.hdf).")
     parser.add_argument("--config-file", type=str, required=True,
                         help="Path to config file (.ini).")
+    parser.add_argument("--sample-parameter", required=True,
+                        help="Parameters to make bounds for.")
+
     parser.add_argument("--observation-num", type=int, default=0)
     parser.add_argument("--n-samples", type=int, default=10000,
                          help="Number of samples to draw from neural network.")
@@ -66,7 +72,7 @@ if __name__ == "__main__":
     if not os.path.exists(args.output_folder):
         os.makedirs(args.output_folder)
 
-    bounds, parameters = get_bounds_from_config(args.config_file)
+    bounds, parameter_names = get_bounds_from_config(args.config_file)
     
     if args.verbose:
         print("Loading neural network...")
@@ -79,20 +85,19 @@ if __name__ == "__main__":
     
     
     if args.verbose:  print("Sampling...")
-    samples = get_samples(net, observations, args)
-    samples = numpy.asanyarray(samples)
+    num_params = len(true_parameters)
+    samples = get_samples(net, observations, num_params, args)
+    print(samples)
 
     # getting data
     nn_params = details(args.neural_net)
-    samplename = f"samples_TS{nn_params['training_number']}_LR{nn_params['learning_rate']}_BS{nn_params['batch_size']}.hdf"
+    samplename = f"samples_TS{nn_params['training_number']}_LR{nn_params['learning_rate']}_BS{nn_params['batch_size']}"
     
     # writing posteriors
-    n_parameters = len(bounds[0])
-    with h5py.File(args.output_folder+'/'+samplename, 'w') as f:
-        for i in range(n_parameters):
-            
-            f['samples/'+parameters[i]] = samples[:,:,i]
-            f['bounds/'+parameters[i]] = [bounds[0][i], bounds[1][i]]
-            f['true_parameters/'+parameters[i]] = true_parameters[i]
+    with h5py.File(f"{args.output_folder}/{samplename}.hdf", 'w') as f:
+        for i in range(len(parameter_names)):         
+            f[f"samples/{parameter_names[i]}"] = samples[:,:,i]
+            f[f"bounds/{parameter_names[i]}"] = [bounds[0,i], bounds[1,i]]
+            f[f"true_parameters/{parameter_names[i]}"] = true_parameters
             
     if args.verbose:  print("All samples written.")

@@ -10,22 +10,22 @@ def parse_arguments():
                         prog = "Trains a Neural Network: ",
                         description = "Takes in simulation data and desired training parameters, and trains a neural network, which is then pickled in indicated output file (.pickle).",
                         )
-
-    parser.add_argument("--sim-filename", type=str, required=True,
+    parser.add_argument("--training-parameters", nargs="+")
+    parser.add_argument("--simulation-file", type=str, required=True,
                        help="Filename of the datafile containing the simulations for training, "
                         +"assumes it is found in simulations/ folder.\nIf not, specify fullpath name.")
-    parser.add_argument("--output-folder", type=str, required=True,
-                        help = "Path to output folder to store pickled neural networks.")
+    parser.add_argument("--output-file", type=str, required=True,
+                        help = "Path to output file to store pickled neural networks.")
     parser.add_argument("--n-simulations", type=int, required=True,
                         help = "Number of simulations to use in training procedure. Cannot exceed number of simulations in datafile.")
-    parser.add_argument("--ini-filename", type=str, required=True,
+    parser.add_argument("--ini-file", type=str, required=True,
                         help = "Path to .ini filed used to make injection.")
     
     parser.add_argument("--add-noise", action="store_true", default = False)
     parser.add_argument("--noisefile", type=str,
                         help = "Path to noise file.")
     
-    parser.add_argument("--gpu", action="store_true", default=False,
+    parser.add_argument("--device", default='cpu',
                         help="Decision to train on gpu, if available. Neural net is brought to cpu after training for pickling.")
     parser.add_argument("--batch-size", type = int, default=50)
     parser.add_argument("--learning-rate", type = float, default=5.0e-4)
@@ -46,12 +46,13 @@ def get_training_data(sim_filename, device, args):
         training_samples = torch.as_tensor(f['signals'][:args.n_simulations,:], dtype=torch.float32, device=device)
         
         if args.verbose:    logging.info("Fetching parameters...")
-        training_parameters = torch.zeros((args.n_simulations, len(f['parameters'].keys())), device=device)
+        training_parameters = torch.zeros((args.n_simulations, len(args.training_parameters)), device=device)
         
-        variable_parameter_names = list(f['parameters'].keys())
+        variable_parameter_names = args.training_parameters
         n_dim = len(variable_parameter_names)
         for i in range(n_dim):
-            training_parameters[:,i] = torch.as_tensor(f['parameters/'+variable_parameter_names[i]][:args.n_simulations], device=device)
+            training_parameters[:,i] = torch.as_tensor(f['parameters/'+variable_parameter_names[i]][:args.n_simulations],
+                                                        device=device)
     return training_samples,training_parameters, variable_parameter_names
             
 def add_noise(training_samples, device, args):
@@ -76,12 +77,15 @@ def add_noise(training_samples, device, args):
     return
         
         
-def train(training_samples,training_parameters, bounds, device, args):
+def train(training_samples,training_parameters, device, args):
             
     # n_dim = len(bounds[0])
     # prior = utils.BoxUniform(low = bounds[0]*torch.ones(n_dim, device=device), high = bounds[1]*torch.ones(n_dim, device=device), device='cuda')
     # prior, _, priorr = process_prior(prior)
-    inference = SNPE()
+    if device == 'gpu':
+        inference = SNPE(device = torch.device('cuda'))
+    else:
+        inference = SNPE()
     if args.verbose: logging.info("Training...")
     density_estimator = inference.append_simulations(training_parameters,
                                                       training_samples).train(training_batch_size=args.batch_size,
@@ -91,11 +95,12 @@ def train(training_samples,training_parameters, bounds, device, args):
     return neural_net
     
 
-
 def get_bounds_from_config(filepath, parameter):
     cp = configparser.ConfigParser()
     cp.read(filepath)
-    param_prior = 'prior-'+parameter
+    for sect in cp.sections():
+        if parameter in sect.split('-'):
+            param_prior = sect
     bounds = [float(cp[param_prior]['min-'+parameter]), float(cp[param_prior]['max-'+parameter])]
     return bounds
 
@@ -108,34 +113,32 @@ def eta(timing, current, total):
     return eta
 
 
-
 if __name__ == "__main__":
     args = parse_arguments()
-    if not os.path.exists(args.output_folder):
-        os.makedirs(args.output_folder)
+    
     
     logging.basicConfig(filename=args.logfile, level=logging.DEBUG)
-    if args.gpu:
+    if args.device == 'gpu':
         device = torch.device('cuda')
     else:
         device = torch.device('cpu')
 
-    simfile = os.path.join(args.output_folder,'../simulations',args.sim_filename+'.hdf')
+    simfile = args.simulation_file
     training_samples, training_parameters, variable_parameter_names = get_training_data(simfile, device, args)
     
     if args.add_noise: add_noise(training_samples, device, args)
         
 
     if args.verbose:  logging.info("Getting bounds...")
-    inifile = os.path.join(args.output_folder, '../code', args.ini_filename+'.ini')
-    bounds = [torch.tensor([get_bounds_from_config(inifile,each)[0] for each in variable_parameter_names],device = device),
-               torch.tensor([get_bounds_from_config(inifile,each)[1] for each in variable_parameter_names],device = device)]
+    inifile = args.ini_file
+    # bounds = [torch.tensor([get_bounds_from_config(inifile,each)[0] for each in args.training_parameters],device = device),
+            #    torch.tensor([get_bounds_from_config(inifile,each)[1] for each in args.training_parameters],device = device)]
     
     if args.verbose: logging.info("Training...")
-    neural_net = train(training_samples,training_parameters,bounds,device,args)
+    neural_net = train(training_samples,training_parameters,args.device,args)
     
-    outputname = f'NN_TS{args.n_simulations:.0e}_LR{args.learning_rate:.0e}_BS{args.batch_size:.0e}.pickle'
-    with open(args.output_folder+ '/' + outputname, 'wb') as f:
-        pickle.dump(neural_net, f)
+    torch.save(neural_net, args.output_file)
+    # with open(args.output_file, 'wb') as f:
+    #     pickle.dump(neural_net, f)
         
     if args.verbose:  logging.info("Neural network trained.")

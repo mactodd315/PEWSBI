@@ -22,9 +22,10 @@ parser.add_argument("--plot-content", choices = ["pptest", "posterior"], require
                     help = "Decision to either plot a pptest or just plot one posterior.")
 parser.add_argument("--config-file", type=str, required=True,
                         help="Path to config file (.ini).")
-parser.add_argument("--sample-parameters", type=str,
-                        help="Parameter name to sample.")
-parser.add_argument("--sample-parameter")
+parser.add_argument("--sample-parameters", 
+                        help="Parameter names to sample for pptest.")
+parser.add_argument("--sample-parameter", 
+                        help="Parameter name to sample for posterior.")
 
 parser.add_argument("--save-traces", action='store_true', default=False)
 parser.add_argument("--num-posteriors", type=int, default=None,
@@ -77,17 +78,18 @@ def run_pp_test(hdffile, key, args, s1, n_intervals = 101, **kwargs):
 
 
 #----------------------
-def plot_posterior(file,s1, argsd):
+def plot_posterior(file, key, argsd, s1):
     """Saves posterior traces to designated file
 
     Args:
         file (hd5 object): .hdf file object containing posterior data
         args (_type_): _description_
     """
-    samples = file['samples/'+argsd['sample_parameter']][argsd['posterior_index'],:]
-    bounds = file['bounds/'+argsd['sample_parameter']][:]
-    s1.hist(samples, 150, range=bounds, density=True)
-    s1.set_xlabel(argsd['sample_parameter'])
+    samples = file['samples/'+key][argsd['posterior_index'],:]
+    bounds = file['bounds/'+key][:]
+    print(samples)
+    s1.hist(samples, density=True)
+    s1.set_xlabel(key)
     s1.set_ylabel('Probability')
 
     return s1
@@ -130,9 +132,9 @@ if __name__ == "__main__":
         for each in samples:
             argsd['sample_name'] = each
             with h5py.File(os.path.join(args.samples_folder,each), 'r') as f:
-                plot_posterior(f,s1,argsd)
-        if argsd['plot_true']:
-            with h5py.File(os.path.join(args.samples_folder,samples[0]), 'r') as f:
-                s1.axvline(f['true_parameters/'+argsd['sample_parameter']][int(argsd['posterior_index'])], color='k')
+                s1 = plot_posterior(f,argsd["sample_parameter"],argsd,s1)
+        # if argsd['plot_true']:
+            # with h5py.File(os.path.join(args.samples_folder,samples[0]), 'r') as f:
+            #     s1.axvline(f['true_parameters/'+argsd['sample_parameter']][int(argsd['posterior_index'])], color='k')
         plt.savefig(f'{argsd["plot_folder"]}/posterior{argsd["posterior_index"]}_{argsd["sample_parameter"]}.png')  
     
