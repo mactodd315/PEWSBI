@@ -1,22 +1,7 @@
 from sbi.inference import SNPE
 import torch, numpy, pickle, h5py, argparse, sys, configparser, os
-
-sys.path.append("/home/mrtodd/PEWSBI/code/train")
-
-def get_bounds_from_config(filepath):    
-    cp = configparser.ConfigParser()
-    cp.read(filepath)
-    param_prior = [each for each in cp.sections() if 'params' not in each.split('_')]
-    bounds = numpy.zeros((2,len(param_prior)))
-
-    parameters = []
-    for i in range(len(param_prior)):
-        each = param_prior[i]
-        parameter = each.split('-')[1]
-        parameters.append(parameter)
-        bounds[0, i] = float(cp[each]['min-'+parameter])
-        bounds[1, i] = float(cp[each]['max-'+parameter])
-    return bounds, parameters
+from pycbc.inference.io import (ResultsArgumentParser, results_from_cli,
+                                PosteriorFile, loadfile)
 
 def details(neuralnet):
     dets = {}
@@ -30,12 +15,14 @@ def details(neuralnet):
 def get_samples(net, observations, num_params, args):
     samples = numpy.ndarray((len(observations), args.n_samples, num_params))
     for i in range(len(observations)):
-        samples[i,:,:] = numpy.asanyarray(net.sample((args.n_samples,), x=observations[i]))
+        samples[i,:,:] = numpy.asanyarray(net.sample((args.n_samples,),
+                                                      x=observations[i]))
     
     return samples
 def fetch_observation(file, args):
     observations = torch.as_tensor(file['signals'][:args.observation_num,:])
-    true_parameters = [file['parameters'][i][:args.observation_num] for i in args.sample_parameters]
+    true_parameters = [file['parameters'][i][:args.observation_num] \
+                       for i in args.sample_parameters]
     return observations, true_parameters
 
 
@@ -44,9 +31,9 @@ if __name__ == "__main__":
     ################################################
     parser = argparse.ArgumentParser(
                         prog = "Estimates Posterior: ",
-                        description = "Takes in trained neural network and given observation, and returns an estimated posterior \
-                        to the designated output file.",
-                        )
+                        description = "Takes in trained neural network \
+                              and given observation, and returns an estimated posterior \
+                            to the designated output file.",  )
 
     parser.add_argument("--neural-net", type=str, required=True,
                          help="Path to the trained nerual network (.pickle).")
@@ -65,6 +52,8 @@ if __name__ == "__main__":
     parser.add_argument("--n-bins", type=int, default=200)
     parser.add_argument("--write-samples", action="store_true", default=False,
                          help="Option to write raw samples drawn from neural network")
+    
+    parser.add_argument("--write-pycbc-posterior", default=None)
     parser.add_argument("-v", "--verbose", action="store_true", default=False)
 
     args = parser.parse_args()
@@ -86,6 +75,7 @@ if __name__ == "__main__":
     if args.verbose:  print("Sampling...")
     num_params = len(true_parameters)
     samples = get_samples(net, observations, num_params, args)
+    print(samples.shape)
 
     # getting data
     # nn_params = details(args.neural_net)
@@ -94,12 +84,22 @@ if __name__ == "__main__":
     parameter_names = args.sample_parameters
     # writing posteriors
     with h5py.File(args.output_file, 'w') as f:
+        samples = {parameter_names[j]: samples[0,:,j] for j in range(len(parameter_names))} 
+        
+        for key in samples.keys():
+            print(samples[key].shape)
+            f[f"samples/{key}"] = samples[key]
         for i in range(len(parameter_names)):    
-            print(true_parameters)     
-            f[f"samples/{parameter_names[i]}"] = samples[:,:,i]
             # f[f"bounds/{parameter_names[i]}"] = [bounds[0,i], bounds[1,i]]
             f[f"true_parameters/{parameter_names[i]}"] = true_parameters
             # f.attrs['neural_net_data'] = nn_params
 
-            
+    if args.write_pycbc_posterior is not None:
+        outtype = PosteriorFile.name
+        out = loadfile(args.write_pycbc_posterior, 'w', filetype=outtype) 
+        out.write_samples(samples)
+        out.attrs['static_params'] = []
+    
+
+
     if args.verbose:  print("All samples written.")

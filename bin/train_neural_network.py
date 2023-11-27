@@ -8,16 +8,21 @@ import configparser
 def parse_arguments():
     parser = argparse.ArgumentParser(
                         prog = "Trains a Neural Network: ",
-                        description = "Takes in simulation data and desired training parameters, and trains a neural network, which is then pickled in indicated output file (.pickle).",
-                        )
+                        description = "Takes in simulation data and desired \
+                            training parameters, and trains a neural network,\
+                            which is then pickled in indicated output file \
+                            (.pickle).",)
+    
     parser.add_argument("--training-parameters", nargs="+")
     parser.add_argument("--simulation-file", type=str, required=True,
-                       help="Filename of the datafile containing the simulations for training, "
-                        +"assumes it is found in simulations/ folder.\nIf not, specify fullpath name.")
+                       help="Filename of the datafile containing the \
+                        simulations for training, assumes it is found in simulations/\
+                         folder.\nIf not, specify fullpath name.")
     parser.add_argument("--output-file", type=str, required=True,
                         help = "Path to output file to store pickled neural networks.")
     parser.add_argument("--n-simulations", type=int, required=True,
-                        help = "Number of simulations to use in training procedure. Cannot exceed number of simulations in datafile.")
+                        help = "Number of simulations to use in training procedure. \
+                              Cannot exceed number of simulations in datafile.")
     parser.add_argument("--ini-file", type=str, required=True,
                         help = "Path to .ini filed used to make injection.")
     
@@ -26,7 +31,8 @@ def parse_arguments():
                         help = "Path to noise file.")
     
     parser.add_argument("--device", default='cpu',
-                        help="Decision to train on gpu, if available. Neural net is brought to cpu after training for pickling.")
+                        help="Decision to train on gpu, if available. Neural net is brought \
+                              to cpu after training for pickling.")
     parser.add_argument("--batch-size", type = int, default=50)
     parser.add_argument("--learning-rate", type = float, default=5.0e-4)
     parser.add_argument("--show-summary", action='store_true', default=False)
@@ -43,16 +49,18 @@ def get_training_data(sim_filename, device, args):
     with h5py.File(sim_filename, 'r') as f:
             
         if args.verbose: logging.info("Fetching training samples...")
-        training_samples = torch.as_tensor(f['signals'][:args.n_simulations,:], dtype=torch.float32, device=device)
+        training_samples = torch.as_tensor(f['signals'][:args.n_simulations,:],
+                                            dtype=torch.float32, device=device)
         
         if args.verbose:    logging.info("Fetching parameters...")
-        training_parameters = torch.zeros((args.n_simulations, len(args.training_parameters)), device=device)
+        training_parameters = torch.zeros((args.n_simulations, len(args.training_parameters)),
+                                           device=device)
         
         variable_parameter_names = args.training_parameters
         n_dim = len(variable_parameter_names)
         for i in range(n_dim):
-            training_parameters[:,i] = torch.as_tensor(f['parameters/'+variable_parameter_names[i]][:args.n_simulations],
-                                                        device=device)
+            training = f['parameters/'+variable_parameter_names[i]][:args.n_simulations]
+            training_parameters[:,i] = torch.as_tensor(training, device=device)
     return training_samples,training_parameters, variable_parameter_names
             
 def add_noise(training_samples, device, args):
@@ -63,13 +71,16 @@ def add_noise(training_samples, device, args):
     start = time.perf_counter()   
     with h5py.File(args.noisefile, 'r') as f:
         noise = torch.as_tensor(f["noise"][()], dtype=torch.float32, device=device)
-    indices = np.random.choice(list(range(len(noise)-samples_length)), size = len(training_samples))
+    indices = np.random.choice(list(range(len(noise)-samples_length)),
+                                size = len(training_samples))
     for i in range(len(training_samples)):
         tic = time.perf_counter()
         training_samples[i,:] += noise[indices[i]:indices[i]+samples_length]
         if args.verbose and i%args.monitor_rate==0:
             toc = time.perf_counter()
-            logging.info("Noise added to {} out of {} signals. Time-passed: {:.6f}  ETA:  {}".format(str(i),str(args.n_simulations),toc-tic, eta(toc-tic,i,len(training_samples))))
+            logging.info("Noise added to {} out of {} signals. Time-passed: \
+                          {:.6f}  ETA:  {}".format(str(i),str(args.n_simulations),
+                                toc-tic, eta(toc-tic,i,len(training_samples))))
                     
     end = time.perf_counter()
     if args.verbose:     logging.info("Total time: {}".format(end-start))
@@ -79,30 +90,29 @@ def add_noise(training_samples, device, args):
         
 def train(training_samples,training_parameters, device, args):
             
-    # n_dim = len(bounds[0])
-    # prior = utils.BoxUniform(low = bounds[0]*torch.ones(n_dim, device=device), high = bounds[1]*torch.ones(n_dim, device=device), device='cuda')
-    # prior, _, priorr = process_prior(prior)
+
     if device == 'gpu':
         inference = SNPE(device = torch.device('cuda'))
     else:
         inference = SNPE()
     if args.verbose: logging.info("Training...")
-    density_estimator = inference.append_simulations(training_parameters,
-                                                      training_samples).train(training_batch_size=args.batch_size,
-                                                                            learning_rate=args.learning_rate,
-                                                                            show_train_summary=args.show_summary)
+    inference = inference.append_simulations(training_parameters, training_samples)
+    density_estimator = inference.train(training_batch_size=args.batch_size,
+                                        learning_rate=args.learning_rate,
+                                        show_train_summary=args.show_summary)
     neural_net = inference.build_posterior(density_estimator)
     return neural_net
     
 
-def get_bounds_from_config(filepath, parameter):
-    cp = configparser.ConfigParser()
-    cp.read(filepath)
-    for sect in cp.sections():
-        if parameter in sect.split('-'):
-            param_prior = sect
-    bounds = [float(cp[param_prior]['min-'+parameter]), float(cp[param_prior]['max-'+parameter])]
-    return bounds
+# def get_bounds_from_config(filepath, parameter):
+#     cp = configparser.ConfigParser()
+#     cp.read(filepath)
+#     for sect in cp.sections():
+#         if parameter in sect.split('-'):
+#             param_prior = sect
+#     bounds = [float(cp[param_prior]['min-'+parameter]),
+#                float(cp[param_prior]['max-'+parameter])]
+#     return bounds
 
 def eta(timing, current, total):
     eta = timing*(total-current)
@@ -124,15 +134,14 @@ if __name__ == "__main__":
         device = torch.device('cpu')
 
     simfile = args.simulation_file
-    training_samples, training_parameters, variable_parameter_names = get_training_data(simfile, device, args)
+    training_samples, training_parameters, \
+          variable_parameter_names = get_training_data(simfile, device, args)
     
     if args.add_noise: add_noise(training_samples, device, args)
         
 
-    if args.verbose:  logging.info("Getting bounds...")
-    inifile = args.ini_file
-    # bounds = [torch.tensor([get_bounds_from_config(inifile,each)[0] for each in args.training_parameters],device = device),
-            #    torch.tensor([get_bounds_from_config(inifile,each)[1] for each in args.training_parameters],device = device)]
+    # if args.verbose:  logging.info("Getting bounds...")
+    # inifile = args.ini_file
     
     if args.verbose: logging.info("Training...")
     neural_net = train(training_samples,training_parameters,args.device,args)

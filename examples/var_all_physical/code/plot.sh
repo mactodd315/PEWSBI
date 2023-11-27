@@ -6,23 +6,21 @@ source ~/Projects/machine_learning_sbi/sbi_env/bin/activate
 current_folder="/home/mactodd315/Projects/machine_learning_sbi/PEWSBI"
 example_folder="/examples/var_all_physical"
 
-# python $current_folder/bin/plot.py \
-#     --samples-folder  $current_folder$example_folder/samples/ \
-#     --sample-name samples_TS1e+03_LR5e-05_BS1e+03.hdf \
-#     --plot-folder   $current_folder$example_folder/plots \
-#     --plot-content 'pptest' \
-#     --config-file    $current_folder$example_folder/code/injection.ini \
-#     --sample-parameters 'mass1' \
-#     --num-posteriors 100
+python $current_folder/bin/plot.py \
+    --samples-file $current_folder$example_folder/samples/samples1.hdf \
+    --plot-folder   $current_folder$example_folder/plots \
+    --plot-content 'pptest' \
+    --config-file    $current_folder$example_folder/code/injection.ini \
+    --sample-parameters 'total_mass' \
+    --num-posteriors 10
 
 python $current_folder/bin/plot.py \
-    --samples-folder  $current_folder$example_folder/samples/ \
-    --sample-name samples_TS1e+03_LR5e-04_BS1e+02.hdftotal_mass \
+    --samples-file  $current_folder$example_folder/samples/samples1.hdf \
     --plot-folder  $current_folder$example_folder/plots \
     --plot-content 'posterior' \
     --config-file   $current_folder$example_folder/code/injection.ini \
     --sample-parameter 'total_mass' \
-    --posterior-index 0 \
+    --posterior-index 7 \
     --plot-true
 
 # python $current_folder/bin/plot.py \
