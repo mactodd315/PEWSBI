@@ -91,8 +91,8 @@ def add_noise(training_samples, device, args):
 def train(training_samples,training_parameters, device, args):
             
 
-    if device == 'gpu':
-        inference = SNPE(device = torch.device('cuda'))
+    if args.device == 'gpu':
+        inference = SNPE(device='cuda')
     else:
         inference = SNPE()
     if args.verbose: logging.info("Training...")
@@ -129,7 +129,9 @@ if __name__ == "__main__":
     
     logging.basicConfig(filename=args.logfile, level=logging.DEBUG)
     if args.device == 'gpu':
+        print(f"GPU available: {torch.cuda.is_available()}")
         device = torch.device('cuda')
+
     else:
         device = torch.device('cpu')
 
@@ -144,7 +146,7 @@ if __name__ == "__main__":
     # inifile = args.ini_file
     
     if args.verbose: logging.info("Training...")
-    neural_net = train(training_samples,training_parameters,args.device,args)
+    neural_net = train(training_samples,training_parameters,device,args)
     
     torch.save(neural_net, args.output_file)
     # with open(args.output_file, 'wb') as f:

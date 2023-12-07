@@ -1,14 +1,15 @@
 #!/bin/bash
 
 #use sbi_env environment
-source ~/Projects/machine_learning_sbi/sbi_env/bin/activate
+source ~/miniconda3/bin/activate sbi_env
 
-ITER=1
-current_folder="/home/mactodd315/Projects/machine_learning_sbi/PEWSBI"
+current_folder="/home/mrtodd/PEWSBI"
 example_folder="/examples/var_all_physical"
 INPUT_FILE=$current_folder$example_folder/samples/post1.hdf
-OUTPUT_FILE=$current_folder$example_folder/plots/post0.png
+OUTPUT_FILE=$current_folder$example_folder/plots/post0_inclination.png
+    
 pycbc_inference_plot_posterior \
+    --iteration 10 \
     --input-file ${INPUT_FILE} \
     --output-file ${OUTPUT_FILE} \
-    --parameters total_mass 
+    --parameters inclination distance total_mass

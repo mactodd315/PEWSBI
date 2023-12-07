@@ -1,9 +1,9 @@
 #!/bin/bash
 
 #use sbi_env environment
-source ~/Projects/machine_learning_sbi/sbi_env/bin/activate
+source ~/miniconda3/bin/activate sbi_env
 
-current_folder="/home/mactodd315/Projects/machine_learning_sbi/PEWSBI"
+current_folder="/home/mrtodd/PEWSBI"
 example_folder="/examples/var_all_physical"
 
 # #generate noise
@@ -15,7 +15,7 @@ example_folder="/examples/var_all_physical"
 # generate injection parameters file
 pycbc_create_injections --verbose \
     --config-files $current_folder$example_folder/code/injection.ini \
-    --ninjections 10000 \
+    --ninjections 100000 \
     --seed 0 \
     --output-file $current_folder$example_folder/simulations/injection.hdf \
     --variable-params-section variable_params \
@@ -28,6 +28,7 @@ python $current_folder/bin/simulate_data.py \
     -v \
     --signal-length 4096\
     --delta-f 1024 \
-    --monitor-rate 1 \
-    --injfile simulations/injection.hdf \
-    --output-file $current_folder$example_folder/simulations/trainings.hdf
+    --monitor-rate 100 \
+    --timing \
+    --injfile $current_folder$example_folder/simulations/injection.hdf \
+    --output-file $current_folder$example_folder/simulations/trainings_all1.hdf

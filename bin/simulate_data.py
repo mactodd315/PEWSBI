@@ -4,6 +4,7 @@ from pycbc import psd, filter, waveform
 import argparse, h5py, os
 import numpy as np
 import matplotlib.pyplot as plt
+import time
 
 
 ####################################################################################################
@@ -37,6 +38,7 @@ parser.add_argument("--noise-file")
 
 parser.add_argument("-v", "--verbose", action="store_true", default=False)
 parser.add_argument("--monitor-rate", type=int, default=10)
+parser.add_argument("--timing", '-t', action="store_true", default=False)
 parser.add_argument("--snr", action='store_true', default=False)
 
 args = parser.parse_args()
@@ -47,11 +49,26 @@ def injection_to_signal(items):
     signal = np.ndarray((n_simulations),dtype=TimeSeries)
     if args.verbose:   print("Injecting signals...")
     for i in range(n_simulations):
-        if args.verbose and (i+1)%args.monitor_rate==0:    print(f"\r{i+1} signals injected.", end='')
+        if args.timing:
+            start = time.perf_counter()
+        
         a = TimeSeries(np.zeros(args.signal_length, dtype=np.float32),
                         epoch=args.epoch, delta_t=1.0/args.delta_f)
         injector.apply(a, 'H1', simulation_ids=[i])
         signal[i] = a*args.DNRF
+        if args.verbose and (i+1)%args.monitor_rate==0:
+            s = f"\r{i+1} signals injected."
+            if args.timing:
+                elapsed = time.perf_counter()-start
+                remaining = (n_simulations-i)*elapsed
+                hrs = remaining//3600
+                mins = (remaining%3600)//60
+                sec = ((remaining%3600)%60)
+                time_str = f" ETA: {hrs:.0f}h{mins:.0f}m{sec:.0f}s" 
+                filled = len(s)+len(time_str)
+                s += (70-filled)*'.'
+                s += time_str
+            print(s, end='')
     return signal
 
 
@@ -69,7 +86,6 @@ if __name__ == "__main__":
                 f['parameters/' + i] = f1[i][()]
             if args.verbose: print("Parameters: ", f1.keys())
         injector = InjectionSet(injfile)
-        if args.verbose: print("Injection Table: ", injector.table)
         n_simulations = len(injector.table)
         items = (injector, args, n_simulations) 
         signal = injection_to_signal(items)

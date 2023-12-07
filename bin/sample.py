@@ -65,7 +65,7 @@ if __name__ == "__main__":
     
     if args.verbose:
         print("Loading neural network...")
-    net = torch.load(args.neural_net)
+    net = torch.load(args.neural_net, map_location=torch.device('cpu'))
 
     if args.verbose:  print("Fetching observations...")
     with h5py.File(args.observation_file, 'r') as f:
@@ -83,21 +83,23 @@ if __name__ == "__main__":
     
     parameter_names = args.sample_parameters
     # writing posteriors
+    if not os.path.exists(os.path.dirname(args.output_file)):
+        os.makedirs(os.path.dirname(args.output_file))
     with h5py.File(args.output_file, 'w') as f:
-        samples = {parameter_names[j]: samples[0,:,j] for j in range(len(parameter_names))} 
+        pycbc_samples = {parameter_names[j]: samples[0,:,j] for j in range(len(parameter_names))} 
+        samples = {parameter_names[j]: samples[:,:,j] for j in range(len(parameter_names))} 
         
         for key in samples.keys():
-            print(samples[key].shape)
             f[f"samples/{key}"] = samples[key]
         for i in range(len(parameter_names)):    
             # f[f"bounds/{parameter_names[i]}"] = [bounds[0,i], bounds[1,i]]
-            f[f"true_parameters/{parameter_names[i]}"] = true_parameters
+            f[f"true_parameters/{parameter_names[i]}"] = true_parameters[i]
             # f.attrs['neural_net_data'] = nn_params
 
     if args.write_pycbc_posterior is not None:
         outtype = PosteriorFile.name
         out = loadfile(args.write_pycbc_posterior, 'w', filetype=outtype) 
-        out.write_samples(samples)
+        out.write_samples(pycbc_samples)
         out.attrs['static_params'] = []
     
 
