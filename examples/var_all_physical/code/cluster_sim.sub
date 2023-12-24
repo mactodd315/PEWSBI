@@ -1,0 +1,14 @@
+executable = /home/mrtodd/PEWSBI/examples/var_all_physical/code/simulate.sh
+arguments = $(Process) 10
+log = /home/mrtodd/logfiles/cluster_sim.log
+output = /home/mrtodd/outputfiles/cluster_sim.out
+error = /home/mrtodd/errorfiles/cluster_sim.err
+
+request_cpus = 2
+request_memory = 1 M
+request_disk  = 10 M
+
+Requirements = regexp("CRUSH", TARGET.name)
+
+queue 2
+

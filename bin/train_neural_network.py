@@ -27,7 +27,7 @@ def parse_arguments():
                         help = "Path to .ini filed used to make injection.")
     
     parser.add_argument("--add-noise", action="store_true", default = False)
-    parser.add_argument("--noisefile", type=str,
+    parser.add_argument("--noise-file", type=str,
                         help = "Path to noise file.")
     
     parser.add_argument("--device", default='cpu',
@@ -69,7 +69,7 @@ def add_noise(training_samples, device, args):
     
     if args.verbose:  logging.info("Adding noise...")
     start = time.perf_counter()   
-    with h5py.File(args.noisefile, 'r') as f:
+    with h5py.File(args.noise_file, 'r') as f:
         noise = torch.as_tensor(f["noise"][()], dtype=torch.float32, device=device)
     indices = np.random.choice(list(range(len(noise)-samples_length)),
                                 size = len(training_samples))
@@ -79,11 +79,11 @@ def add_noise(training_samples, device, args):
         if args.verbose and i%args.monitor_rate==0:
             toc = time.perf_counter()
             logging.info("Noise added to {} out of {} signals. Time-passed: \
-                          {:.6f}  ETA:  {}".format(str(i),str(args.n_simulations),
-                                toc-tic, eta(toc-tic,i,len(training_samples))))
+                          {:.6f}  ETA:  {}\r".format(str(i),str(args.n_simulations),
+                                toc-tic, eta(toc-tic,i,len(training_samples))), end='')
                     
     end = time.perf_counter()
-    if args.verbose:     logging.info("Total time: {}".format(end-start))
+    if args.verbose:     logging.info("\nTotal time: {:.2f} s".format(end-start))
     if args.verbose:     logging.info("Noise added.")
     return
         

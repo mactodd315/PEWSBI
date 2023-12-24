@@ -29,7 +29,7 @@ python $current_folder/bin/simulate_data.py \
     --signal-length 4096\
     --delta-f 1024 \
     --monitor-rate 1 \
-    --injfile simulations/injection.hdf \
+    --injfile $current_folder$example_folder/simulations/injection.hdf \
     --output-file $current_folder$example_folder/simulations/observations.hdf \
     --add-noise \
     --noise-file $current_folder$example_folder/simulations/noise.hdf \

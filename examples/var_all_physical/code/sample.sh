@@ -7,12 +7,11 @@ current_folder="/home/mrtodd/PEWSBI"
 example_folder="/examples/var_all_physical"
 
 python $current_folder/bin/sample.py \
-    --neural-net $current_folder$example_folder/neural_nets/NN2_all.pickle \
+    --neural-net $current_folder$example_folder/neural_nets/NN_all.pickle \
     --output-file $current_folder$example_folder/samples/samples_all.hdf \
     --observation-file $current_folder$example_folder/simulations/observations.hdf \
     --config-file  $current_folder$example_folder/code/injection.ini \
-    --sample-parameter 'total_mass' 'mass1' 'inclination' 'ra' 'dec' \
-                         'distance' 'polarization' 'tc'\
+    --sample-parameter 'total_mass' 'mass_ratio'\
     --observation-num 100 \
     --n-samples 10000 \
     --write-pycbc-posterior  $current_folder$example_folder/samples/post1.hdf \
