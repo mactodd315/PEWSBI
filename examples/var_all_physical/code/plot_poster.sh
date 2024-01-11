@@ -12,4 +12,5 @@ pycbc_inference_plot_posterior \
     --iteration 0 \
     --input-file ${INPUT_FILE} \
     --output-file ${OUTPUT_FILE} \
-    --parameters  total_mass mass_ratio
+    --parameters  total_mass mass_ratio \
+    --expected-parameters total_mass:189.2 mass_ratio:1.075

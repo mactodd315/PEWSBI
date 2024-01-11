@@ -8,9 +8,9 @@ example_folder="/examples/var_all_physical"
 
 #train neural_network
 python $current_folder/bin/train_neural_network.py \
-   --simulation-file $current_folder$example_folder/simulations/trainings_all.hdf \
-   --output-file $current_folder$example_folder/neural_nets/NN_all.pickle \
-   --n-simulations 100000 \
+   --simulation-file $current_folder$example_folder/simulations/trainings_all_big.hdf \
+   --output-file $current_folder$example_folder/neural_nets/NN_all_snpe.pickle \
+   --n-simulations 300000 \
    --training-parameters 'total_mass' 'mass_ratio'\
    --ini-file $current_folder$example_folder/code/injection.ini \
    --add-noise \

@@ -26,6 +26,8 @@ parser.add_argument("--sample-parameter",
 parser.add_argument("--save-traces", action='store_true', default=False)
 parser.add_argument("--num-posteriors", type=int, default=None,
                     help = "Number of posteriors to include in the pptest analysis.")
+parser.add_argument("--n-trainings", type=int, default=None,
+                    help = "Number of simulations used in training network.")
 parser.add_argument("--posterior-index", type=int, default=0,
                     help = "Location of posterior desired when choosing to plot one posterior.")
 parser.add_argument("--plot-true", action="store_true", default=False,
@@ -111,7 +113,7 @@ if __name__ == "__main__":
                 keys = argsd['sample_parameters']
                 for key in keys:
                     s1 = run_pp_test(f, key, argsd, s1)
-        s1.set_title(f"PP Test")
+        s1.set_title(f"PP Test - {argsd['n_trainings']:.0e} samples")
         
         s1.set_xlabel("Credible Interval")
         s1.set_ylabel("Credibility")
@@ -125,6 +127,7 @@ if __name__ == "__main__":
             with h5py.File(each, 'r') as f:
                 s1 = plot_posterior(f,argsd["sample_parameter"],argsd,s1)
             if argsd['plot_true']:
+                print()
                 with h5py.File(each, 'r') as f:
                     print(f['true_parameters/'+argsd['sample_parameter']][int(argsd['posterior_index'])])
                     s1.axvline(f['true_parameters/'+argsd['sample_parameter']][int(argsd['posterior_index'])], color='k')

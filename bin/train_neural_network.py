@@ -67,7 +67,7 @@ def add_noise(training_samples, device, args):
            
     samples_length = training_samples.shape[1]
     
-    if args.verbose:  logging.info("Adding noise...")
+    if args.verbose:  print("Adding noise...")
     start = time.perf_counter()   
     with h5py.File(args.noise_file, 'r') as f:
         noise = torch.as_tensor(f["noise"][()], dtype=torch.float32, device=device)
@@ -78,13 +78,15 @@ def add_noise(training_samples, device, args):
         training_samples[i,:] += noise[indices[i]:indices[i]+samples_length]
         if args.verbose and i%args.monitor_rate==0:
             toc = time.perf_counter()
-            logging.info("Noise added to {} out of {} signals. Time-passed: \
-                          {:.6f}  ETA:  {}\r".format(str(i),str(args.n_simulations),
-                                toc-tic, eta(toc-tic,i,len(training_samples))), end='')
+            
+            message = f"\rNoise added to {i} out of {args.n_simulations}"
+            message += f" signals. Time-passed: {toc-tic:.6f} "
+            message += f"  ETA:  {eta(toc-tic,i,len(training_samples))}"
+            print(message, end='')
                     
     end = time.perf_counter()
-    if args.verbose:     logging.info("\nTotal time: {:.2f} s".format(end-start))
-    if args.verbose:     logging.info("Noise added.")
+    if args.verbose:     print("\nTotal time: {:.2f} s".format(end-start))
+    if args.verbose:     print("Noise added.")
     return
         
         
@@ -95,7 +97,7 @@ def train(training_samples,training_parameters, device, args):
         inference = SNPE(device='cuda')
     else:
         inference = SNPE()
-    if args.verbose: logging.info("Training...")
+    if args.verbose: print("Training...")
     inference = inference.append_simulations(training_parameters, training_samples)
     density_estimator = inference.train(training_batch_size=args.batch_size,
                                         learning_rate=args.learning_rate,

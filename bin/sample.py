@@ -86,7 +86,7 @@ if __name__ == "__main__":
     if not os.path.exists(os.path.dirname(args.output_file)):
         os.makedirs(os.path.dirname(args.output_file))
     with h5py.File(args.output_file, 'w') as f:
-        pycbc_samples = {parameter_names[j]: samples[0,:,j] for j in range(len(parameter_names))} 
+        pycbc_samples = {parameter_names[j]: samples[0,:,j] for j in range(len(parameter_names))}
         samples = {parameter_names[j]: samples[:,:,j] for j in range(len(parameter_names))} 
         
         for key in samples.keys():
