@@ -41,8 +41,6 @@ if __name__ == "__main__":
                          help="Path to output file (.hdf)")
     parser.add_argument("--observation-file", type=str, required=True,
                         help="Path to observation file (.hdf).")
-    parser.add_argument("--config-file", type=str, required=True,
-                        help="Path to config file (.ini).")
     parser.add_argument("--sample-parameters", required=True, nargs='+',
                         help="Parameters to make bounds for.")
 

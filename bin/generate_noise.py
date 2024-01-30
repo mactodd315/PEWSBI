@@ -13,7 +13,7 @@ parser = argparse.ArgumentParser(
                     description = "Takes in parameters and simulates a noise file at given output path.",
                     )
 
-parser.add_argument("--output-folder", type=str, required=True,
+parser.add_argument("--output-file", type=str, required=True,
                     help = "Path for output file to be written.")
 parser.add_argument("--ini-file", type=str, required=True,
                     help="Path to the initialization file, should be .ini.")
@@ -27,9 +27,9 @@ parser.add_argument("-v", "--verbose", action="store_true", default=False)
 args = parser.parse_args()
 
 def generate_noise(args):
-    noisefile = os.path.join(args.output_folder,'noise.hdf')
-    if not os.path.exists(args.output_folder):
-        os.mkdir(args.output_folder)
+    noisefile = os.path.join(args.output_file)
+    if not os.path.exists(os.path.dirname(args.output_file)):
+        os.makedirs(os.path.dirname(args.output_file))
         
     f = h5py.File(noisefile,'w')
     config = configparser.ConfigParser()

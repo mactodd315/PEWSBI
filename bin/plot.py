@@ -16,8 +16,6 @@ parser.add_argument("--samples-file", required=True, nargs='+',
 parser.add_argument("--plot-folder", required=True)
 parser.add_argument("--plot-content", choices = ["pptest", "posterior"], required=True,
                     help = "Decision to either plot a pptest or just plot one posterior.")
-parser.add_argument("--config-file", type=str, required=True,
-                        help="Path to config file (.ini).")
 parser.add_argument("--sample-parameters", nargs='+',
                         help="Parameter names to sample for pptest.")
 parser.add_argument("--sample-parameter", 

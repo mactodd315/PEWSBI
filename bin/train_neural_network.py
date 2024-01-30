@@ -1,7 +1,7 @@
 import argparse, h5py, torch, pickle, logging, time, os
 import numpy as np
 import sbi.utils as utils
-from sbi.inference import SNPE
+from sbi.inference import SNPE, SNLE, SNRE
 from sbi.utils.user_input_checks import process_prior
 
 import configparser
@@ -23,9 +23,7 @@ def parse_arguments():
     parser.add_argument("--n-simulations", type=int, required=True,
                         help = "Number of simulations to use in training procedure. \
                               Cannot exceed number of simulations in datafile.")
-    parser.add_argument("--ini-file", type=str, required=True,
-                        help = "Path to .ini filed used to make injection.")
-    
+
     parser.add_argument("--add-noise", action="store_true", default = False)
     parser.add_argument("--noise-file", type=str,
                         help = "Path to noise file.")
@@ -33,6 +31,10 @@ def parse_arguments():
     parser.add_argument("--device", default='cpu',
                         help="Decision to train on gpu, if available. Neural net is brought \
                               to cpu after training for pickling.")
+    parser.add_argument("--training-method", type=str, default='SNPE',
+                        choices=["SNPE", "SNLE", "SNRE"],
+                        help="Training method to use, see https://github.com/sbi-dev/sbi \
+                            for more details.")
     parser.add_argument("--batch-size", type = int, default=50)
     parser.add_argument("--learning-rate", type = float, default=5.0e-4)
     parser.add_argument("--show-summary", action='store_true', default=False)
@@ -92,11 +94,20 @@ def add_noise(training_samples, device, args):
         
 def train(training_samples,training_parameters, device, args):
             
-
     if args.device == 'gpu':
-        inference = SNPE(device='cuda')
+        if args.training_method == "SNPE":
+            inference = SNPE(device='cuda')
+        elif args.training_method == "SNLE":
+            inference = SNLE(device='cuda')
+        else:
+            inference = SNRE(device='cuda')
     else:
-        inference = SNPE()
+        if args.training_method == "SNPE":
+            inference = SNPE()
+        elif args.training_method == "SNLE":
+            inference = SNLE()
+        else:
+            inference = SNRE()
     if args.verbose: print("Training...")
     inference = inference.append_simulations(training_parameters, training_samples)
     density_estimator = inference.train(training_batch_size=args.batch_size,
