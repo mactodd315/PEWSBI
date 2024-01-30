@@ -4,6 +4,11 @@ the flow of the modular nature of this code. **Note: You should change the curre
 of the scripts to match where your PEWSBI directory is.** All created files and subdirectories will be contained
 inside this example folder.
 
+**Before running any scripts, you must activate the installed environment**
+```
+conda activate sbi_env
+```
+
 All `python` scripts have `argparse` help written and can be called with
 ```
 python /path/to/script.py -h

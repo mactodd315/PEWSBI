@@ -1,0 +1,19 @@
+name: sbi_env
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - numpy
+  - scipy
+  - matplotlib
+  - gpstime
+  - ipython
+  - tqdm 
+  - pip
+  - setuptools
+  - pycbc
+  - pip:
+      - PyPDF2
+      - sbi
+      - torch

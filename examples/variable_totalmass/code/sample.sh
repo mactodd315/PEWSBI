@@ -1,7 +1,5 @@
 #!/bin/bash
 
-#use sbi_env environment
-source ~/Projects/machine_learning_sbi/sbi_env/bin/activate # change to your env dir.
 
 current_folder="/home/mactodd315/Projects/machine_learning_sbi/PEWSBI" # change to your PEWSBI dir.
 example_folder="/examples/variable_totalmass"
