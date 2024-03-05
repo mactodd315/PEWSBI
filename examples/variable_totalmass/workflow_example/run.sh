@@ -5,9 +5,9 @@
 # can be executed
 export PATH=$PATH:$PWD/../../../bin
 
-python pewsbi.py \
+python var_total_mass_wf.py \
 --workflow-name test \
---config-files pewsbi.ini \
+--config-files var_total_mass.ini \
 --input-file injection.ini \
 --training-parameters 'total_mass' \
 --ninjections 1000 \
