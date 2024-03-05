@@ -15,7 +15,7 @@ pycbc_create_injections --verbose \
     --force
 
 #generate simulation data
-python $current_folder/bin/simulate_data.py \
+simulate_data \
     --verbose \
     --signal-length 2048\
     --delta-f 512 \

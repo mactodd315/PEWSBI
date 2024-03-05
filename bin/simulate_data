@@ -1,3 +1,5 @@
+#!/bin/env python
+
 from  pycbc.inject import InjectionSet
 from pycbc.types import TimeSeries, zeros, array
 from pycbc import psd, filter, waveform

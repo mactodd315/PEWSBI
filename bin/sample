@@ -1,3 +1,5 @@
+#!/bin/env python
+
 from sbi.inference import SNPE
 import torch, numpy, pickle, h5py, argparse, sys, configparser, os
 from pycbc.inference.io import (ResultsArgumentParser, results_from_cli,

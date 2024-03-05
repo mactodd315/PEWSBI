@@ -1,17 +1,18 @@
 # How to run this example 
-There are several bash scripts in contained in the subfolder `code`, and walking through these demonstrates
-the flow of the modular nature of this code. **Note: You should change the current folder variable in each
+There are several bash scripts contained in the subfolder `code`, and walking through these demonstrates
+the flow of the modular nature of this code. There is also a more compact workflow example, contained in `workflow_example`, which can be used as well; this requires that `Pegasus` also be installed, in order to handle the cluster job management. The workflow example, can only be run on a cluster, so for local jobs you should use the bash scripts. **Note: You should change the current folder variable in each
 of the scripts to match where your PEWSBI directory is.** All created files and subdirectories will be contained
 inside this example folder.
 
-**Before running any scripts, you must activate the installed environment**
+**Before running any scripts, you must activate the installed environment as well as add the PEWSBI bin to PATH**
 ```
 conda activate sbi_env
+export PATH=$PATH:<path/to/PEWSBI/bin>
 ```
 
 All `python` scripts have `argparse` help written and can be called with
 ```
-python /path/to/script.py -h
+script -h
 ```
 
 ## 1. `injection.ini`

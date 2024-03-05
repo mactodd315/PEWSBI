@@ -1,3 +1,5 @@
+#!/bin/env python
+
 import matplotlib.pyplot as plt
 import argparse, h5py, numpy, sys, os
 
@@ -13,7 +15,7 @@ parser = argparse.ArgumentParser(prog="Plotter"
 #------------------
 parser.add_argument("--samples-file", required=True, nargs='+',
                     help = "Path to file containing posteriors to be plotted.")
-parser.add_argument("--plot-folder", required=True)
+parser.add_argument("--output-file", required=True)
 parser.add_argument("--plot-content", choices = ["pptest", "posterior"], required=True,
                     help = "Decision to either plot a pptest or just plot one posterior.")
 parser.add_argument("--sample-parameters", nargs='+',
@@ -93,11 +95,11 @@ def plot_posterior(file, key, argsd, s1):
 #--------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    if not os.path.exists(args.plot_folder):
-            os.makedirs(args.plot_folder)
+    # if not os.path.exists(args.plot_folder):
+    #         os.makedirs(args.plot_folder)
 
     argsd = vars(args)
-    argsd["parent_folder"] = os.path.join(args.plot_folder,'..')
+    # argsd["parent_folder"] = os.path.join(args.plot_folder,'..')
     
     # if not argsd['sample_name'] == None:
     #     samples = [os.path.join(argsd["samples_folder"], argsd["sample_name"])]
@@ -117,7 +119,7 @@ if __name__ == "__main__":
         s1.set_ylabel("Credibility")
         s1.grid(True)
         plt.legend()
-        plt.savefig(os.path.join(args.plot_folder,'pptest.png'))
+        plt.savefig(os.path.join(argsd["output_plot"]))
    
     if args.plot_content == "posterior":
         for each in args.samples_file:
@@ -129,5 +131,4 @@ if __name__ == "__main__":
                 with h5py.File(each, 'r') as f:
                     print(f['true_parameters/'+argsd['sample_parameter']][int(argsd['posterior_index'])])
                     s1.axvline(f['true_parameters/'+argsd['sample_parameter']][int(argsd['posterior_index'])], color='k')
-        plt.savefig(f'{argsd["plot_folder"]}/posterior{argsd["posterior_index"]}_{argsd["sample_parameter"]}.png')  
-    
+        plt.savefig(f'{argsd["output_plot"]}')    

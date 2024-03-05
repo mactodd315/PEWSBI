@@ -1,3 +1,5 @@
+#!/bin/env python
+
 import argparse, h5py, torch, pickle, logging, time, os
 import numpy as np
 import sbi.utils as utils

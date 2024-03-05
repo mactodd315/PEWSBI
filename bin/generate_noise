@@ -1,3 +1,5 @@
+#!/bin/env python
+
 """
 Generates noise from pycbc.noise and writes to noise.txt
 """

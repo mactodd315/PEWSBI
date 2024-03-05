@@ -1,7 +1,9 @@
+#!/bin/env python
+
 import argparse, h5py, os
 import numpy as np
 
-def zip_signals(simfile, sim_shape):
+def zip_signals(simfile, sim_shape, args, f):
     signals = np.ndarray((args.n_simulations*args.sim_shape[0],args.sim_shape[1])) 
     parameters = {}
     for i in range(args.n_simulations):
@@ -17,9 +19,9 @@ def zip_signals(simfile, sim_shape):
             signals[i*args.sim_shape[0]:(i+1)*args.sim_shape[0],:] = f1['signals'][:,:]
     return signals,parameters
 
-def write_signals(outputfile, simfile, sim_shape):
+def write_signals(outputfile, simfile, sim_shape, args):
     with h5py.File(outputfile, 'w') as f:
-        signals,parameters = zip_signals(simfile,sim_shape)
+        signals,parameters = zip_signals(simfile,sim_shape, args, f)
         #write results to file
         f['signals'] = signals
         for key in parameters.keys():
@@ -42,14 +44,14 @@ parser.add_argument("--output_injfile", type=str,
 parser.add_argument("--n-simulations", type=int,required=True)
 parser.add_argument('--sim-shape', type=str, required=True)
 
-# args = parser.parse_args()
+args = parser.parse_args()
 ###############################################################################################
 
 if __name__ == "__main__":
     sim_shape = args.sim_shape.split(',')
     args.sim_shape = [int(each) for each in sim_shape]
     
-    write_signals(args.output_simfile, args.simfile, args.sim_shape)
+    write_signals(args.output_simfile, args.simfile, args.sim_shape, args)
     # for i in range(args.n_simulations):
     #     os.remove(args.simfile+str(i)+'.hdf')
     #     os.remove(args.injfile+str(i)+'.hdf')

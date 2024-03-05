@@ -6,7 +6,7 @@ example_folder="/examples/variable_totalmass"
 # generate injection parameters file
 pycbc_create_injections --verbose \
     --config-files $current_folder$example_folder/code/injection.ini \
-    --ninjections 10000 \
+    --ninjections 100000 \
     --seed 0 \
     --output-file $current_folder$example_folder/simulations/injection.hdf \
     --variable-params-section variable_params \
@@ -15,11 +15,11 @@ pycbc_create_injections --verbose \
     --force
 
 #generate simulation data
-python $current_folder/bin/simulate_data.py \
+simulate_data \
     --verbose \
     --signal-length 2048\
     --delta-f 512 \
-    --monitor-rate 50 \
+    --monitor-rate 100 \
     --injfile $current_folder$example_folder/simulations/injection.hdf \
     --output-file $current_folder$example_folder/simulations/training_simulations.hdf
 
