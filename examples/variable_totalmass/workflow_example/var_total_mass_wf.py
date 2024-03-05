@@ -129,11 +129,13 @@ workflow += node8
 exe7 = wf.Executable(workflow.cp, 'plot')
 
 node9 = exe7.create_node()
-node8.add_input_opt('--samples-file', samples)
-node8.new_output_file_opt(workflow.analysis_time, '.png',
+node9.add_input_opt('--samples-file', samples)
+node9.new_output_file_opt(workflow.analysis_time, '.png',
                           '--output-plot', tags=['9'])
-node8.add_opt('--plot-content', 'pptest')
-node8.add_opt('--sample-parameters', 'total_mass')
+node9.add_opt('--plot-content', 'pptest')
+node9.add_opt('--sample-parameters', 'total_mass')
+
+workflow+=node9
 ########################################
 
 # Save workflow ##############
