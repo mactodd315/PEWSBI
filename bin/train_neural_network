@@ -80,7 +80,7 @@ def add_noise(training_samples, device, args):
                                 size = len(training_samples))
     for i in range(len(training_samples)):
         tic = time.perf_counter()
-        training_samples[i,:] += noise[indices[i]:indices[i]+samples_length]*args.DNRF
+        training_samples[i,:] += noise[indices[i]:indices[i]+samples_length]*float(args.DNRF)
         if args.verbose and i%args.monitor_rate==0:
             toc = time.perf_counter()
             

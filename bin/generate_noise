@@ -41,11 +41,14 @@ def generate_noise(args):
     
     flen = int(args.f_len/args.delta_f) + 1
     psd = pycbc.psd.aLIGOZeroDetHighPower(flen,args.delta_f,f_low)
+    if args.verbose:
+        print("Made PSD, converting to timeseries.")
     
     t_samples = int(args.t_len/args.delta_t)
 
     ts = pycbc.noise.noise_from_psd(t_samples,args.delta_t,psd,seed=0)
     f["noise"] = ts
+    if args.verbose: print("Done.")
     f.close()
     
 if __name__ == "__main__":
