@@ -29,6 +29,7 @@ def parse_arguments():
     parser.add_argument("--add-noise", action="store_true", default = False)
     parser.add_argument("--noise-file", type=str,
                         help = "Path to noise file.")
+    parser.add_argument("--DNRF", default=1.0)
     
     parser.add_argument("--device", default='cpu',
                         help="Decision to train on gpu, if available. Neural net is brought \
@@ -79,7 +80,7 @@ def add_noise(training_samples, device, args):
                                 size = len(training_samples))
     for i in range(len(training_samples)):
         tic = time.perf_counter()
-        training_samples[i,:] += noise[indices[i]:indices[i]+samples_length]
+        training_samples[i,:] += noise[indices[i]:indices[i]+samples_length]*args.DNRF
         if args.verbose and i%args.monitor_rate==0:
             toc = time.perf_counter()
             

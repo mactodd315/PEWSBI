@@ -30,8 +30,8 @@ args = parser.parse_args()
 
 def generate_noise(args):
     noisefile = os.path.join(args.output_file)
-    if not os.path.exists(os.path.dirname(args.output_file)):
-        os.makedirs(os.path.dirname(args.output_file))
+#    if not os.path.exists(os.path.dirname(args.output_file)):
+#        os.makedirs(os.path.dirname(args.output_file))
         
     f = h5py.File(noisefile,'w')
     config = configparser.ConfigParser()

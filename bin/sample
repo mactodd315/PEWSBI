@@ -4,7 +4,7 @@ from sbi.inference import SNPE
 import torch, numpy, pickle, h5py, argparse, sys, configparser, os
 from pycbc.inference.io import (ResultsArgumentParser, results_from_cli,
                                 PosteriorFile, loadfile)
-
+from pycbc.strain.strain import from_cli
 def details(neuralnet):
     dets = {}
     neuralnet = neuralnet.split('.')[0]
@@ -15,18 +15,25 @@ def details(neuralnet):
     dets['batch_size'] = l[3][2:]
     return dets
 def get_samples(net, observations, num_params, args):
-    samples = numpy.ndarray((len(observations), args.n_samples, num_params))
-    for i in range(len(observations)):
-        samples[i,:,:] = numpy.asanyarray(net.sample((args.n_samples,),
+    if args.strain_channel:
+        samples = numpy.array([numpy.asanyarray(net.sample((args.n_samples,), x=observations))])
+    else:
+        samples = numpy.ndarray((len(observations), args.n_samples, num_params))
+        for i in range(len(observations)):
+            samples[i,:,:] = numpy.asanyarray(net.sample((args.n_samples,),
                                                       x=observations[i]))
     
     return samples
 def fetch_observation(file, args):
-    observations = torch.as_tensor(file['signals'][:args.observation_num,:])
-    true_parameters = [file['parameters'][i][:args.observation_num] \
-                       for i in args.sample_parameters]
-    return observations, true_parameters
-
+    if args.strain_channel:
+        observations = torch.as_tensor(file[args.strain_channel][:])
+        return observations, None
+        
+    else:
+        observations = torch.as_tensor(file['signals'][:args.observation_num,:])
+        true_parameters = [file['parameters'][i][:args.observation_num] \
+                        for i in args.sample_parameters]
+        return observations, true_parameters
 
 if __name__ == "__main__":
     
@@ -41,11 +48,11 @@ if __name__ == "__main__":
                          help="Path to the trained nerual network (.pickle).")
     parser.add_argument("--output-file", type=str, required=True,
                          help="Path to output file (.hdf)")
-    parser.add_argument("--observation-file", type=str, required=True,
+    parser.add_argument("--observation-file", type=str,
                         help="Path to observation file (.hdf).")
+    parser.add_argument("--strain-channel")
     parser.add_argument("--sample-parameters", required=True, nargs='+',
                         help="Parameters to make bounds for.")
-
     parser.add_argument("--observation-num", type=int, default=0)
     parser.add_argument("--n-samples", type=int, default=10000,
                          help="Number of samples to draw from neural network.")
@@ -68,33 +75,36 @@ if __name__ == "__main__":
     net = torch.load(args.neural_net, map_location=torch.device('cpu'))
 
     if args.verbose:  print("Fetching observations...")
-    with h5py.File(args.observation_file, 'r') as f:
-        observations, true_parameters = fetch_observation(f, args)
+
+    if args.observation_file.split('.')[-1] == 'hdf':
+        with h5py.File(args.observation_file, 'r') as f:
+            observations, true_parameters = fetch_observation(f, args)
+    else:
+        raise TypeError
+        
     
     
     if args.verbose:  print("Sampling...")
-    num_params = len(true_parameters)
+    num_params = len(true_parameters) if true_parameters != None else 0
     samples = get_samples(net, observations, num_params, args)
-    print(samples.shape)
 
     # getting data
     # nn_params = details(args.neural_net)
     
     
     parameter_names = args.sample_parameters
-    # writing posteriors
-    if not os.path.exists(os.path.dirname(args.output_file)):
-        os.makedirs(os.path.dirname(args.output_file))
+    
     with h5py.File(args.output_file, 'w') as f:
         pycbc_samples = {parameter_names[j]: samples[0,:,j] for j in range(len(parameter_names))}
         samples = {parameter_names[j]: samples[:,:,j] for j in range(len(parameter_names))} 
         
         for key in samples.keys():
             f[f"samples/{key}"] = samples[key]
-        for i in range(len(parameter_names)):    
-            # f[f"bounds/{parameter_names[i]}"] = [bounds[0,i], bounds[1,i]]
-            f[f"true_parameters/{parameter_names[i]}"] = true_parameters[i]
-            # f.attrs['neural_net_data'] = nn_params
+        if args.strain_channel == None:
+            for i in range(len(parameter_names)):    
+                # f[f"bounds/{parameter_names[i]}"] = [bounds[0,i], bounds[1,i]]
+                f[f"true_parameters/{parameter_names[i]}"] = true_parameters[i]
+                # f.attrs['neural_net_data'] = nn_params
 
     if args.write_pycbc_posterior is not None:
         outtype = PosteriorFile.name
