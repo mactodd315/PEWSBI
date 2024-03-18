@@ -33,6 +33,7 @@ pycbc_condition_strain \
     --gps-end-time 1126259477 \
     --channel-name H1:SIMULATED_STRAIN \
     --injection-file gw150914_injection.hdf \
+    --dyn-range-factor  \
     --output-strain-file H-H1_SIMULATED_STRAIN-1126259447-30.hdf
 
 OMP_NUM_THREADS=1 pycbc_inference \
@@ -56,7 +57,7 @@ OMP_NUM_THREADS=1 pycbc_inference_model_stats \
 
 ###     Now run sbi_inference procedure      ###
 
-generate injection parameters file
+# generate injection parameters file
 pycbc_create_injections --verbose \
     --config-files margtime.ini \
     --ninjections 100000 \
@@ -67,15 +68,13 @@ pycbc_create_injections --verbose \
     --dist-section prior \
     --force
 
-# generate simulation data, signa-length should match
-# (gps-end minus gps-start)*sample_rate in condition
-# strain above.
+# generate simulation data
 simulate_data \
     --verbose \
-    --signal-length 61440 \
+    --signal-length  8192\
     --delta-f 2048 \
     --monitor-rate 500 \
-    --epoch 1126259447 \
+    --epoch 1126259460 \
     --DNRF '1e18' \
     --injfile gw150914_training_injections.hdf \
     --output-file gw150914_training_samples.hdf
@@ -90,10 +89,10 @@ train_neural_network \
  --training-parameters mass1 mass2 \
  --simulation-file gw150914_training_samples.hdf \
  --output-file gw150914_trained_nn.pickle \
- --n-simulations 50000 \
+ --n-simulations 100000 \
  --add-noise \
  --noise-file noise.hdf \
- --DNRF '1e18' \
+ --DNRF '5e16' \
  --show-summary \
  --batch-size 500 \
  --learning-rate .00002 \
@@ -106,6 +105,8 @@ sample \
     --strain-channel 'H1:SIMULATED_STRAIN' \
     --sample-parameters 'mass1' 'mass2' \
     --observation-num 1 \
+    --observation-start 1126259460 \
+    --observation-size 8192 \
     --n-samples 10000 \
     --n-bins 500 \
     --write-pycbc-posterior sbi_gw150914_posterior.hdf \

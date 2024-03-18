@@ -26,7 +26,18 @@ def get_samples(net, observations, num_params, args):
     return samples
 def fetch_observation(file, args):
     if args.strain_channel:
-        observations = torch.as_tensor(file[args.strain_channel][:])
+        data = file[args.strain_channel]
+        delta_t = data.attrs['delta_t']
+        if args.observation_start:
+            start_index = int((args.observation_start - \
+                               data.attrs['start_time'])/delta_t)
+        else:
+            start_index = 0
+        if args.observation_size:
+            end_index = int(start_index + args.observation_size)
+        else:
+            end_index = None
+        observations = torch.as_tensor(data[start_index:end_index])
         return observations, None
         
     else:
@@ -51,6 +62,13 @@ if __name__ == "__main__":
     parser.add_argument("--observation-file", type=str,
                         help="Path to observation file (.hdf).")
     parser.add_argument("--strain-channel")
+    parser.add_argument("--observation-start", type=float,
+                        help="GPS time to start the slice, defaults to start \
+                            time in the dataset attrs.")
+    parser.add_argument("--observation-size", type=float,
+                        help="Size of slice to take from observation, \
+                            defaults to entire chunk.")
+
     parser.add_argument("--sample-parameters", required=True, nargs='+',
                         help="Parameters to make bounds for.")
     parser.add_argument("--observation-num", type=int, default=0)
@@ -75,7 +93,6 @@ if __name__ == "__main__":
     net = torch.load(args.neural_net, map_location=torch.device('cpu'))
 
     if args.verbose:  print("Fetching observations...")
-
     if args.observation_file.split('.')[-1] == 'hdf':
         with h5py.File(args.observation_file, 'r') as f:
             observations, true_parameters = fetch_observation(f, args)
