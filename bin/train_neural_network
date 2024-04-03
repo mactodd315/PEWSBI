@@ -16,19 +16,22 @@ def parse_arguments():
                             (.pickle).",)
     
     parser.add_argument("--training-parameters", nargs="+")
-    parser.add_argument("--simulation-file", type=str, required=True,
+    parser.add_argument("--input-file", type=str, required=True,
                        help="Filename of the datafile containing the \
                         simulations for training, assumes it is found in simulations/\
                          folder.\nIf not, specify fullpath name.")
+    parser.add_argument("--channel-name", type=str,
+                        help="If using conditioned strain, must provide the \
+                            channel name for hdf file key")
     parser.add_argument("--output-file", type=str, required=True,
                         help = "Path to output file to store pickled neural networks.")
     parser.add_argument("--n-simulations", type=int, required=True,
                         help = "Number of simulations to use in training procedure. \
                               Cannot exceed number of simulations in datafile.")
 
-    parser.add_argument("--add-noise", action="store_true", default = False)
-    parser.add_argument("--noise-file", type=str,
+    parser.add_argument("--add-noise", type=str,
                         help = "Path to noise file.")
+    parser.add_argument('--IFO')
     parser.add_argument("--DNRF", default=1.0)
     
     parser.add_argument("--device", default='cpu',
@@ -40,6 +43,8 @@ def parse_arguments():
                             for more details.")
     parser.add_argument("--batch-size", type = int, default=50)
     parser.add_argument("--learning-rate", type = float, default=5.0e-4)
+    parser.add_argument("--stop-after-epochs", type=int, default=20)
+    parser.add_argument("--valid-frac", type=float, default=.05)
     parser.add_argument("--show-summary", action='store_true', default=False)
 
     parser.add_argument("-v", "--verbose", action="store_true", default=False)
@@ -52,9 +57,12 @@ def parse_arguments():
 def get_training_data(sim_filename, device, args):
     
     with h5py.File(sim_filename, 'r') as f:
-            
+        if args.channel_name:
+            signals = f[args.channel_name]
+        else:
+            signals = f['signals']
         if args.verbose: logging.info("Fetching training samples...")
-        training_samples = torch.as_tensor(f['signals'][:args.n_simulations,:],
+        training_samples = torch.as_tensor(signals[:args.n_simulations,:],
                                             dtype=torch.float32, device=device)
         
         if args.verbose:    logging.info("Fetching parameters...")
@@ -74,8 +82,11 @@ def add_noise(training_samples, device, args):
     
     if args.verbose:  print("Adding noise...")
     start = time.perf_counter()   
-    with h5py.File(args.noise_file, 'r') as f:
-        noise = torch.as_tensor(f["noise"][()], dtype=torch.float32, device=device)
+    with h5py.File(args.add_noise, 'r') as f:
+        if args.IFO: 
+            noise = torch.as_tensor(f[args.IFO][()], dtype=torch.float32, device=device)
+        else:
+            noise = torch.as_tensor(f["noise"][()], dtype=torch.float32, device=device)
     indices = np.random.choice(list(range(len(noise)-samples_length)),
                                 size = len(training_samples))
     for i in range(len(training_samples)):
@@ -115,7 +126,9 @@ def train(training_samples,training_parameters, device, args):
     inference = inference.append_simulations(training_parameters, training_samples)
     density_estimator = inference.train(training_batch_size=args.batch_size,
                                         learning_rate=args.learning_rate,
-                                        show_train_summary=args.show_summary)
+                                        show_train_summary=args.show_summary,
+                                        stop_after_epochs=args.stop_after_epochs,
+                                        validation_fraction=args.valid_frac)
     neural_net = inference.build_posterior(density_estimator)
     return neural_net
     
@@ -151,7 +164,7 @@ if __name__ == "__main__":
     else:
         device = torch.device('cpu')
 
-    simfile = args.simulation_file
+    simfile = args.input_file
     training_samples, training_parameters, \
           variable_parameter_names = get_training_data(simfile, device, args)
     

@@ -4,7 +4,8 @@ from sbi.inference import SNPE
 import torch, numpy, pickle, h5py, argparse, sys, configparser, os
 from pycbc.inference.io import (ResultsArgumentParser, results_from_cli,
                                 PosteriorFile, loadfile)
-from pycbc.strain.strain import from_cli
+from pycbc.strain import insert_strain_option_group_multi_ifo, from_cli_multi_ifos
+
 def details(neuralnet):
     dets = {}
     neuralnet = neuralnet.split('.')[0]
@@ -42,8 +43,8 @@ def fetch_observation(file, args):
         
     else:
         observations = torch.as_tensor(file['signals'][:args.observation_num,:])
-        true_parameters = [file['parameters'][i][:args.observation_num] \
-                        for i in args.sample_parameters]
+        true_parameters = {i: file['parameters'][i][:args.observation_num] \
+                        for i in args.sample_parameters}
         return observations, true_parameters
 
 if __name__ == "__main__":
@@ -61,6 +62,7 @@ if __name__ == "__main__":
                          help="Path to output file (.hdf)")
     parser.add_argument("--observation-file", type=str,
                         help="Path to observation file (.hdf).")
+    parser.add_argument("--IFOs", nargs='+')
     parser.add_argument("--strain-channel")
     parser.add_argument("--observation-start", type=float,
                         help="GPS time to start the slice, defaults to start \
@@ -71,7 +73,7 @@ if __name__ == "__main__":
 
     parser.add_argument("--sample-parameters", required=True, nargs='+',
                         help="Parameters to make bounds for.")
-    parser.add_argument("--observation-num", type=int, default=0)
+    parser.add_argument("--observation-num", type=int, default=1)
     parser.add_argument("--n-samples", type=int, default=10000,
                          help="Number of samples to draw from neural network.")
     parser.add_argument("--n-bins", type=int, default=200)
@@ -80,7 +82,7 @@ if __name__ == "__main__":
     
     parser.add_argument("--write-pycbc-posterior", default=None)
     parser.add_argument("-v", "--verbose", action="store_true", default=False)
-
+    insert_strain_option_group_multi_ifo(parser)
     args = parser.parse_args()
     ###############################################
     # if not os.path.exists(args.output_folder):
@@ -93,7 +95,17 @@ if __name__ == "__main__":
     net = torch.load(args.neural_net, map_location=torch.device('cpu'))
 
     if args.verbose:  print("Fetching observations...")
-    if args.observation_file.split('.')[-1] == 'hdf':
+    if args.injection_file:
+        observations = from_cli_multi_ifos(args, args.IFOs)
+        observations = [observations[args.IFOs[0]]] # should change this later
+
+        injection_name =list(args.injection_file.values())[0]
+        with h5py.File(injection_name, 'r') as f:
+            true_parameters = {key: value for key,value in f.attrs.items()}
+            
+
+    elif args.observation_file and \
+        args.observation_file.split('.')[-1] == 'hdf':
         with h5py.File(args.observation_file, 'r') as f:
             observations, true_parameters = fetch_observation(f, args)
     else:
@@ -102,7 +114,7 @@ if __name__ == "__main__":
     
     
     if args.verbose:  print("Sampling...")
-    num_params = len(true_parameters) if true_parameters != None else 0
+    num_params = len(args.sample_parameters) if args.sample_parameters != None else 0
     samples = get_samples(net, observations, num_params, args)
 
     # getting data
@@ -118,9 +130,8 @@ if __name__ == "__main__":
         for key in samples.keys():
             f[f"samples/{key}"] = samples[key]
         if args.strain_channel == None:
-            for i in range(len(parameter_names)):    
-                # f[f"bounds/{parameter_names[i]}"] = [bounds[0,i], bounds[1,i]]
-                f[f"true_parameters/{parameter_names[i]}"] = true_parameters[i]
+            for key, value in true_parameters.items():
+                f[f"true_parameters/{key}"] = value
                 # f.attrs['neural_net_data'] = nn_params
 
     if args.write_pycbc_posterior is not None:
