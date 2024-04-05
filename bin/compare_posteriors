@@ -1,0 +1,61 @@
+#!/bin/env python
+
+import numpy, pickle, h5py, argparse, sys, os
+from pycbc.inference.io import (ResultsArgumentParser, results_from_cli,
+                                PosteriorFile, loadfile)
+from pycbc.strain import insert_strain_option_group_multi_ifo, from_cli_multi_ifos
+from pycbc.inference.entropy import js
+from pycbc.inference.burn_in import ks_test, ks_2samp
+
+parser = ResultsArgumentParser(defaultparams='all')
+
+args = parser.parse_args()
+
+##############################
+# check that only two input files provided
+if len(args.input_file) > 2:
+    raise IndexError("Cannot have more than two distributions compared.")
+
+###  compute the JS divergence of the two posteriors  ###
+
+fp_all, parameters, labels, samples_all = results_from_cli(args)
+samples1 = {}
+samples2 = {}
+
+js_results = {}
+ks_results = {}
+
+
+for each_parameter in parameters:
+    label = labels[each_parameter]
+
+    # get each distribution
+    dist1 = fp_all[0][f'samples/{label}'][:]
+    samples1[label] = dist1
+    dist2 = fp_all[1][f'samples/{label}'][:]
+    samples2[label] = dist2
+
+    # compute js divergence 
+    result = js(dist1, dist2, kde=True)
+    js_results[label] = result
+
+    # compute the p-value from ks test
+    result = ks_2samp(dist1, dist2)
+    ks_results[label] = result.pvalue
+
+# # compute ks test statistic
+# result = ks_test(samples1, samples2)
+# ks_results = result
+
+print("JS Divergence Test results:")
+for key, value in js_results.items():
+    print(f"\t{key}: {value:.3f}")
+
+print("KS Test results:")
+for key, value in ks_results.items():
+    print(f"\t{key}: {value}")
+
+
+    
+
+

@@ -26,8 +26,9 @@ def parse_arguments():
     parser.add_argument("--output-file", type=str, required=True,
                         help = "Path to output file to store pickled neural networks.")
     parser.add_argument("--n-simulations", type=int, required=True,
-                        help = "Number of simulations to use in training procedure. \
-                              Cannot exceed number of simulations in datafile.")
+                        help = '''Number of simulations to use in training procedure. 
+                              Can exceed number of simulations in datafile, which call 
+                              random simulations and add them with random noise.''')
 
     parser.add_argument("--add-noise", type=str,
                         help = "Path to noise file.")
@@ -48,7 +49,7 @@ def parse_arguments():
     parser.add_argument("--show-summary", action='store_true', default=False)
 
     parser.add_argument("-v", "--verbose", action="store_true", default=False)
-    parser.add_argument("--monitor-rate", type=int, default=20)
+    parser.add_argument("--monitor-rate", type=int, default=500)
     parser.add_argument("--logfile", type=str)
 
     args = parser.parse_args()
@@ -104,9 +105,25 @@ def add_noise(training_samples, device, args):
     if args.verbose:     print("\nTotal time: {:.2f} s".format(end-start))
     if args.verbose:     print("Noise added.")
     return
+
+def simulate(args):
+
+    with h5py.File(args.input_file, 'r') as f:
+        x = f['signals'][:,:]
+        theta = np.array([f[f'parameters/{k}'][:] \
+                               for k in args.training_parameters])
+        theta = theta.T
+
+        indices = np.random.choice(x.shape[0],
+                                   size=(args.n_simulations))
+        x = np.array(x[indices,:])
+        theta = np.array(theta[indices,:])
+
+    return torch.as_tensor(theta, dtype=torch.float32),  \
+            torch.as_tensor(x, dtype=torch.float32)
         
         
-def train(training_samples,training_parameters, device, args):
+def train(device, args):
             
     if args.device == 'gpu':
         if args.training_method == "SNPE":
@@ -122,8 +139,12 @@ def train(training_samples,training_parameters, device, args):
             inference = SNLE()
         else:
             inference = SNRE()
+    if args.verbose: print("Drawing simulations...")
+    theta, x = simulate(args)
+    if args.add_noise:
+        add_noise(x, device, args=args)
     if args.verbose: print("Training...")
-    inference = inference.append_simulations(training_parameters, training_samples)
+    inference = inference.append_simulations(theta, x)
     density_estimator = inference.train(training_batch_size=args.batch_size,
                                         learning_rate=args.learning_rate,
                                         show_train_summary=args.show_summary,
@@ -164,18 +185,18 @@ if __name__ == "__main__":
     else:
         device = torch.device('cpu')
 
-    simfile = args.input_file
-    training_samples, training_parameters, \
-          variable_parameter_names = get_training_data(simfile, device, args)
+    # simfile = args.input_file
+    # training_samples, training_parameters, \
+    #       variable_parameter_names = get_training_data(simfile, device, args)
     
-    if args.add_noise: add_noise(training_samples, device, args)
+    # if args.add_noise: add_noise(training_samples, device, args)
         
 
     # if args.verbose:  logging.info("Getting bounds...")
     # inifile = args.ini_file
     
     if args.verbose: logging.info("Training...")
-    neural_net = train(training_samples,training_parameters,device,args)
+    neural_net = train(device,args)
     
     torch.save(neural_net, args.output_file)
     # with open(args.output_file, 'wb') as f:
