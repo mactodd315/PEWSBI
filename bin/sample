@@ -4,6 +4,7 @@ from sbi.inference import SNPE
 import torch, numpy, pickle, h5py, argparse, sys, configparser, os
 from pycbc.inference.io import (ResultsArgumentParser, results_from_cli,
                                 PosteriorFile, loadfile)
+import matplotlib.pyplot as plt
 from pycbc.strain import insert_strain_option_group_multi_ifo, from_cli_multi_ifos
 
 def details(neuralnet):
@@ -67,6 +68,12 @@ if __name__ == "__main__":
     parser.add_argument("--observation-start", type=float,
                         help="GPS time to start the slice, defaults to start \
                             time in the dataset attrs.")
+    parser.add_argument("--DNRF", default = 1.0)
+    parser.add_argument("--whiten", type=str, default=None,
+                        help="If path provided, will use that \
+                            whitening filter, otherwise generates \
+                            a new one from PSD (default).",
+                        nargs='?',   const=1)
     parser.add_argument("--observation-size", type=float,
                         help="Size of slice to take from observation, \
                             defaults to entire chunk.")
@@ -98,7 +105,7 @@ if __name__ == "__main__":
     if args.injection_file:
         observations = from_cli_multi_ifos(args, args.IFOs)
         observations = [observations[args.IFOs[0]]] # should change this later
-
+        observations = [each*float(args.DNRF) for each in observations]
         injection_name =list(args.injection_file.values())[0]
         with h5py.File(injection_name, 'r') as f:
             true_parameters = {key: value for key,value in f.attrs.items()}
@@ -110,8 +117,7 @@ if __name__ == "__main__":
             observations, true_parameters = fetch_observation(f, args)
     else:
         raise TypeError
-        
-    
+                    
     
     if args.verbose:  print("Sampling...")
     num_params = len(args.sample_parameters) if args.sample_parameters != None else 0

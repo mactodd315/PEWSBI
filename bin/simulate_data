@@ -1,7 +1,7 @@
 #!/bin/env python
 
 from  pycbc.inject import InjectionSet
-from pycbc.types import TimeSeries, zeros, array
+from pycbc.types import TimeSeries, zeros, array,float32
 from pycbc import psd, filter, waveform
 import argparse, h5py, os
 import numpy as np
@@ -16,7 +16,7 @@ parser = argparse.ArgumentParser(
                           a desired number of signals with specified parameters.",
                     )
 
-parser.add_argument("--injfile", type=str, required=True,
+parser.add_argument("--injection-file", type=str, required=True,
                    help="Name of injection file for simulations \
                     -- assumes same folder as output folder. \
                         \nIf not, provide full path.")
@@ -35,8 +35,7 @@ parser.add_argument("--epoch", type=float, default = 0,
 parser.add_argument("--DNRF", type=float, default=1.0e18,
                     help="Dynamic range factor used to make training easier.")
 
-parser.add_argument("--add-noise", action='store_true', default=False)
-parser.add_argument("--noise-file")
+parser.add_argument("--add-noise", default=None)
 
 parser.add_argument("-v", "--verbose", action="store_true", default=False)
 parser.add_argument("--monitor-rate", type=int, default=10)
@@ -75,8 +74,8 @@ def injection_to_signal(items):
 
 
 if __name__ == "__main__":
-    
-    injfile = args.injfile
+
+    injfile = args.injection_file
     if args.verbose:
         print("Loaded injection file...")
 
@@ -97,21 +96,21 @@ if __name__ == "__main__":
         if args.add_noise:
             noisysignal = np.ndarray((n_simulations),dtype=TimeSeries)
             samples_length = len(signal[0])
-            with h5py.File(args.noise_file, 'r') as f2:
-                noise = f2["noise"][()]
+            with h5py.File(args.add_noise, 'r') as f2:
+                noise = f2["H1"][()]*args.DNRF
             indices = np.random.choice(list(range(len(noise)-samples_length)), size = n_simulations)
             for i in range(n_simulations):
                 noisysignal[i] = signal[i] + noise[indices[i]:indices[i]+samples_length]
             signal = noisysignal
         if args.snr:
             snrs = np.zeros(n_simulations)
-            f_low = 10.0
+            f_low = 18.0
             flen = int(2048/.25) + 1
             psd_series = psd.aLIGOZeroDetHighPower(flen,signal[0].delta_f,f_low)*args.DNRF**2
+            psd_series = psd_series.astype(float32)
             for i in range(n_simulations):
-                snrs[i] = filter.sigma(noisysignal[i],
-                                                psd=psd_series,low_frequency_cutoff=f_low)
-            print(snrs)
+                snrs[i] = filter.sigma(noisysignal[i],psd_series, low_frequency_cutoff=f_low)
+            print("Average SNR: ", np.average(snrs))
             f['snrs'] = snrs
             
         f['signals'] = [each.numpy() for each in signal]

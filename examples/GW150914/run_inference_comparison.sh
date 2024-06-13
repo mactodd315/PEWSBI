@@ -10,7 +10,7 @@ export PATH=$PATH:$PWD/../../bin
 #     --output-file gw150914_injection.hdf \
 #     --variable-params-section variable_params \
 #     --static-params-section static_params \
-#     --dist-section prior \
+#     --dist-section prior \np.inf
 #     --force
 
 # pycbc_condition_strain \
@@ -58,26 +58,26 @@ export PATH=$PATH:$PWD/../../bin
 ###     Now run sbi_inference procedure      ###
 
 # generate injection parameters file
-pycbc_create_injections --verbose \
-    --config-files margtime.ini \
-    --ninjections 1000000 \
-    --seed 0 \
-    --output-file gw150914_training_injections.hdf \
-    --variable-params-section variable_params \
-    --static-params-section static_params \
-    --dist-section prior \
-    --force
+# pycbc_create_injections --verbose \
+#     --config-files margtime.ini \
+#     --ninjections 1000000 \
+#     --seed 0 \
+#     --output-file gw150914_training_injections.hdf \
+#     --variable-params-section variable_params \
+#     --static-params-section static_params \
+#     --dist-section prior \
+#     --force
 
-# generate simulation data
-simulate_data \
-    --verbose \
-    --signal-length  6144\
-    --delta-f 2048 \
-    --monitor-rate 500 \
-    --epoch 1126259460 \
-    --DNRF '5e20' \
-    --injfile gw150914_training_injections.hdf \
-    --output-file gw150914_training_samples.hdf
+# # generate simulation data
+# simulate_data \
+#     --verbose \
+#     --signal-length  6144\
+#     --delta-f 2048 \
+#     --monitor-rate 500 \
+#     --epoch 1126259460 \
+#     --DNRF '5e21' \
+#     --injfile gw150914_training_injections.hdf \
+#     --output-file gw150914_training_samples.hdf
 
 # generate_noise \
 #     --output-file noise.hdf \
@@ -89,13 +89,13 @@ train_neural_network \
  --training-parameters mass1 mass2 \
  --simulation-file gw150914_training_samples.hdf \
  --output-file gw150914_trained_nn.pickle \
- --n-simulations 1000000 \
+ --n-simulations 100000 \
  --add-noise \
  --noise-file noise.hdf \
  --DNRF '5e20' \
  --show-summary \
  --batch-size 500 \
- --learning-rate .00001 \
+ --learning-rate .0001 \
  -v
 
 sample \
@@ -114,7 +114,7 @@ sample \
 
 pycbc_inference_plot_posterior \
     --input-file 'demarg_150914.hdf' 'sbi_gw150914_posterior.hdf' \
-    --output-file comparison_plot_150914.png \
+    --output-file comparison_plot3_150914.png \
     --parameters "primary_mass(mass1,mass2):mass1" \
                     "secondary_mass(mass1,mass2):mass2" \
     --expected-parameters "mass1:37.0" "mass2:32.0" \

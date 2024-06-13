@@ -5,6 +5,7 @@ import numpy as np
 import sbi.utils as utils
 from sbi.inference import SNPE, SNLE, SNRE
 from sbi.utils.user_input_checks import process_prior
+import matplotlib.pyplot as plt
 
 import configparser
 def parse_arguments():
@@ -118,6 +119,8 @@ def simulate(args):
                                    size=(args.n_simulations))
         x = np.array(x[indices,:])
         theta = np.array(theta[indices,:])
+        
+    
 
     return torch.as_tensor(theta, dtype=torch.float32),  \
             torch.as_tensor(x, dtype=torch.float32)
@@ -143,6 +146,7 @@ def train(device, args):
     theta, x = simulate(args)
     if args.add_noise:
         add_noise(x, device, args=args)
+
     if args.verbose: print("Training...")
     inference = inference.append_simulations(theta, x)
     density_estimator = inference.train(training_batch_size=args.batch_size,

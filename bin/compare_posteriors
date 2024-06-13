@@ -27,21 +27,22 @@ ks_results = {}
 
 
 for each_parameter in parameters:
+    print(each_parameter)
     label = labels[each_parameter]
 
     # get each distribution
-    dist1 = fp_all[0][f'samples/{label}'][:]
-    samples1[label] = dist1
-    dist2 = fp_all[1][f'samples/{label}'][:]
-    samples2[label] = dist2
+    dist1 = fp_all[0][f'samples/{each_parameter}'][:]
+    samples1[each_parameter] = dist1
+    dist2 = fp_all[1][f'samples/{each_parameter}'][:]
+    samples2[each_parameter] = dist2
 
     # compute js divergence 
     result = js(dist1, dist2, kde=True)
-    js_results[label] = result
+    js_results[each_parameter] = result
 
     # compute the p-value from ks test
     result = ks_2samp(dist1, dist2)
-    ks_results[label] = result.pvalue
+    ks_results[each_parameter] = result.pvalue
 
 # # compute ks test statistic
 # result = ks_test(samples1, samples2)
