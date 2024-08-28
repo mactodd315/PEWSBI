@@ -9,11 +9,12 @@ cd $1
 
 python ../ml_inference.py \
 	--workflow-name ml_inference \
-	--config-files ml_inference.ini \
-    --observation-injection gw150914_injection.hdf \
+	--config-files ../ml_inference.ini \
+    --observation-injection ../gw150914_injection.hdf \
 	--working-folder $1 \
 	--n-simulations 10 \
     --n-trainings 10 \
+    --noise-file ../gw150914_noise.hdf
 	--submit-now
 
 cd ..
