@@ -159,7 +159,7 @@ for i in range(len(learned_and_hidden)):
     node3.add_opt('--add-noise', noise_file)
     trained_nn = node3.new_output_file_opt(
                                     workflow.analysis_time, '.hdf',
-                                    '--output-file', tags=['3'])
+                                    '--output-file', tags=[f'3{i}'])
     workflow += node3
 
     # Sample Neural Net
@@ -173,10 +173,10 @@ for i in range(len(learned_and_hidden)):
     node4.add_opt("--injection-file", args.observation_injection)
     samples = node4.new_output_file_opt(
                                     workflow.analysis_time, '.hdf',
-                                    '--output-file', tags=['4'])
+                                    '--output-file', tags=[f'4{i}'])
     posterior_samples = node4.new_output_file_opt(
-                                    workflow.analysis_time, '.hdf',
-                                    '--write-pycbc-posterior', tags=['41'])
+                                workflow.analysis_time, '.hdf',
+                                '--write-pycbc-posterior', tags=[f'41{i}'])
 
     workflow += node4
 
@@ -192,7 +192,7 @@ for i in range(len(learned_and_hidden)):
     node5.add_opt('--force')
     pycbc_samples = node5.new_output_file_opt(
                                     workflow.analysis_time, '.hdf',
-                                    '--output-file', tags=['5'])
+                                    '--output-file', tags=[f'5{i}'])
 
     workflow += node5
 
@@ -215,7 +215,7 @@ for i in range(len(learned_and_hidden)):
     node6.add_opt("--plot-contours")
     samples = node6.new_output_file_opt(
                                     workflow.analysis_time, '.hdf',
-                                    '--output-file', tags=['6'])
+                                    '--output-file', tags=[f'6{i}'])
 
     workflow += node6
 ############################################################################
