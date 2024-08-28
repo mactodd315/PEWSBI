@@ -9,12 +9,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 import configparser, os
 
-from pycbc.strain import insert_strain_option_group_multi_ifo, from_cli_multi_ifos
+from pycbc.strain import insert_strain_option_group_multi_ifo, \
+                         from_cli_multi_ifos
 
 
 parser = argparse.ArgumentParser(
                     prog = "Create Noise File: ",
-                    description = "Takes in parameters and simulates a noise file at given output path.",
+                    description = "Takes in parameters and simulates a \
+                        noise file at given output path.",
                     )
 
 parser.add_argument("--output-file", type=str, required=True,
