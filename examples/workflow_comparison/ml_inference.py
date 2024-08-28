@@ -131,10 +131,10 @@ workflow += node2
 ###################   Train, Sample, Get Posterior   #######################
 
 # first get list of parameters we will vary
-learned_and_hidden = get_list_of_varied_params(args.training_config_file)
+learned_and_hidden = get_list_of_varied_params(training_ini_file_path)
 
 # get pycbc inference .ini file
-pycbc_input_file = wf.resolve_url_to_file(args.pycbc_config_file)
+pycbc_input_file = wf.resolve_url_to_file(pycbc_ini_file_path)
 
 for i in range(len(learned_and_hidden)):
     learned = learned_and_hidden[i][0]
