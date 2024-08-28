@@ -1,5 +1,5 @@
 #! /bin/bash
-export PATH=$PATH:/home/mactodd315/Projects/machine_learning_sbi/PEWSBI/bin
+export PATH=$PATH:/home/mrtodd/PEWSBI/bin
 
 generate_noise --verbose \
     --sample-rate  512 \
