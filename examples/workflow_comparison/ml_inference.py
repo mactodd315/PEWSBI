@@ -46,11 +46,12 @@ parser.add_argument('--n-simulations', type=int, default=1000,
 parser.add_argument('--n-trainings', type=int, default=2000,
                     help="Number of training samples to create for  \
                         neural network training from simulations+noise.")
-parser.add_argument('--input-file')
-parser.add_argument('--training-config-file', type=str,
-                    help="Path/name of training config file (.ini)")
-parser.add_argument('--pycbc-config-file', type=str,
-                    help="Path/name of pycbc inference config file (.ini)")
+parser.add_argument("--working-folder", type=str,
+                    help="Subfolder to save work.")
+# parser.add_argument('--training-config-file', type=str,
+#                     help="Path/name of training config file (.ini)")
+# parser.add_argument('--pycbc-config-file', type=str,
+#                     help="Path/name of pycbc inference config file (.ini)")
 parser.add_argument('--observation-injection', type=str,
                     help='Path to observation injection file \
                         with values of each parameter (.hdf)')
@@ -68,6 +69,13 @@ args = parser.parse_args()
 pycbc.init_logging(args.verbose)
 
 workflow = wf.Workflow(args, 'cont')
+
+training_ini_file_path = os.path.join(
+    args.working_folder, 'training_injections.ini'
+)
+pycbc_ini_file_path = os.path.join(
+    args.working_folder, 'pycbc_inference.ini'
+)
 ############################################################################
 
 
@@ -89,7 +97,8 @@ else:
 
 
 ####################   Create Training Injection   #########################
-training_input_file = wf.resolve_url_to_file(args.training_config_file)
+
+training_input_file = wf.resolve_url_to_file(training_ini_file_path)
 exe1 = wf.Executable(workflow.cp, 'create_injections')
 
 node1 = exe1.create_node()
