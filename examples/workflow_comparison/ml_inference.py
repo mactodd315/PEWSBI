@@ -163,6 +163,7 @@ for i in range(len(learned_and_hidden)):
 
     node4.add_input_opt('--neural-net', trained_nn)
     node4.add_list_opt('--sample-parameters', learned)
+    node4.add_opt("--injection-file", args.observation_injection)
     samples = node4.new_output_file_opt(
                                     workflow.analysis_time, '.hdf',
                                     '--output-file', tags=['4'])
@@ -204,6 +205,7 @@ for i in range(len(learned_and_hidden)):
                                               pycbc_samples])
     node6.add_list_opt('--parameters', learned)
     node6.add_list_opt('--expected-parameters', expected_params)
+    node6.add_opt("--plot-contours")
     samples = node6.new_output_file_opt(
                                     workflow.analysis_time, '.hdf',
                                     '--output-file', tags=['6'])
