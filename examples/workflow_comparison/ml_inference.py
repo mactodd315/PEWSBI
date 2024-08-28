@@ -70,11 +70,9 @@ pycbc.init_logging(args.verbose)
 
 workflow = wf.Workflow(args, 'cont')
 
-training_ini_file_path = os.path.join(
-    args.working_folder, 'training_injections.ini'
+training_ini_file_path = os.path.join(os.curdir, 'training_injections.ini'
 )
-pycbc_ini_file_path = os.path.join(
-    args.working_folder, 'pycbc_inference.ini'
+pycbc_ini_file_path = os.path.join(os.curdir, 'pycbc_inference.ini'
 )
 ############################################################################
 
