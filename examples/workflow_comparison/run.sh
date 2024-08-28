@@ -5,7 +5,9 @@
 # can be executed
 export PATH=$PATH:$PWD/../../bin
 
-python ml_inference.py \
+cd $1
+
+python ../ml_inference.py \
 	--workflow-name ml_inference \
 	--config-files ml_inference.ini \
     --observation-injection gw150914_injection.hdf \
@@ -13,3 +15,5 @@ python ml_inference.py \
 	--n-simulations 10 \
     --n-trainings 10 \
 	--submit-now
+
+cd ..
