@@ -178,7 +178,7 @@ for i in range(len(learned_and_hidden)):
                                     '--output-file', tags=['4'])
     posterior_samples = node4.new_output_file_opt(
                                     workflow.analysis_time, '.hdf',
-                                    '--write-pycbc-posterior', tags=['4'])
+                                    '--write-pycbc-posterior', tags=['41'])
 
     workflow += node4
 
