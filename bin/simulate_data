@@ -41,6 +41,9 @@ parser.add_argument("-v", "--verbose", action="store_true", default=False)
 parser.add_argument("--monitor-rate", type=int, default=10)
 parser.add_argument("--timing", '-t', action="store_true", default=False)
 parser.add_argument("--snr", action='store_true', default=False)
+parser.add_argument("--psd-name", type=str, 
+                    default="aLIGOEarlyLowSensitivityP1200087",
+                    help="Name of fake-psd-strain curve to use.")
 
 args = parser.parse_args()
 ####################################################################################################
@@ -106,10 +109,12 @@ if __name__ == "__main__":
             snrs = np.zeros(n_simulations)
             f_low = 18.0
             flen = int(2048/.25) + 1
-            psd_series = psd.aLIGOZeroDetHighPower(flen,signal[0].delta_f,f_low)*args.DNRF**2
+
+            psd_strain = getattr(psd, args.psd_name)
+            psd_series = psd_strain(flen,signal[0].delta_f,f_low)*args.DNRF**2
             psd_series = psd_series.astype(float32)
             for i in range(n_simulations):
-                snrs[i] = filter.sigma(noisysignal[i],psd_series, low_frequency_cutoff=f_low)
+                snrs[i] = filter.sigma(signal[i],psd_series, low_frequency_cutoff=f_low)
             print("Average SNR: ", np.average(snrs))
             f['snrs'] = snrs
             
