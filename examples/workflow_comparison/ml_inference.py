@@ -187,7 +187,6 @@ for i in range(len(learned_and_hidden)):
     node5 = exe5.create_node()
 
     node5.add_input_opt('--config-files', pycbc_input_file)
-    node5.add_list_opt('--sample-parameters', learned)
     node5.add_opt('--verbose')
     node5.add_opt('--force')
     pycbc_samples = node5.new_output_file_opt(
