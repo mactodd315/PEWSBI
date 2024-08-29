@@ -10,11 +10,11 @@ cd $1
 python ../ml_inference.py \
 	--workflow-name ml_inference \
 	--config-files ../ml_inference.ini \
-    --observation-injection /home/mrtodd/examples/workflow_comparison/gw150914_injection.hdf \
+    --observation-injection /home/mrtodd/PEWSBI/examples/workflow_comparison/gw150914_injection.hdf \
 	--working-folder $1 \
 	--n-simulations 10 \
     --n-trainings 10 \
-    --noise-file /home/mrtodd/examples/workflow_comparison/gw150914_noise.hdf \
+    --noise-file /home/mrtodd/PEWSBI/examples/workflow_comparison/gw150914_noise.hdf \
 	--submit-now
 
 cd ..
