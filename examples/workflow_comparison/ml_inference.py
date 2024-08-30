@@ -134,6 +134,21 @@ learned_and_hidden = get_list_of_varied_params(training_ini_file_path)
 # get pycbc inference .ini file
 pycbc_input_file = wf.resolve_url_to_file(pycbc_ini_file_path)
 
+# Run PYCBC inference
+exe5 = wf.Executable(workflow.cp, 'pycbc_inference',
+                        out_dir = os.curdir)
+
+node5 = exe5.create_node()
+
+node5.add_input_opt('--config-files', pycbc_input_file)
+node5.add_opt('--verbose')
+node5.add_opt('--force')
+pycbc_samples = node5.new_output_file_opt(
+                                workflow.analysis_time, '.hdf',
+                                '--output-file', tags=[f'5'])
+
+workflow += node5
+
 for i in range(len(learned_and_hidden)):
     learned = learned_and_hidden[i][0]
     hidden = learned_and_hidden[i][1]
@@ -179,21 +194,6 @@ for i in range(len(learned_and_hidden)):
                                 '--write-pycbc-posterior', tags=[f'41{i}'])
 
     workflow += node4
-
-    # Run PYCBC inference
-    exe5 = wf.Executable(workflow.cp, 'pycbc_inference',
-                         out_dir = out_dir)
-
-    node5 = exe5.create_node()
-
-    node5.add_input_opt('--config-files', pycbc_input_file)
-    node5.add_opt('--verbose')
-    node5.add_opt('--force')
-    pycbc_samples = node5.new_output_file_opt(
-                                    workflow.analysis_time, '.hdf',
-                                    '--output-file', tags=[f'5{i}'])
-
-    workflow += node5
 
     # Plot Posterior
     expected_params = []
