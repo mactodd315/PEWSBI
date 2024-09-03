@@ -213,14 +213,15 @@ for i in range(len(learned_and_hidden)):
     ]
     print(input_names)
     node6.add_input_list_opt('--input-file', 
-                             input_names)
+                             [posterior_samples+":ML_SBI",
+                              pycbc_samples+":PYCBC"])
     node6.add_list_opt('--parameters', learned)
     node6.add_list_opt('--expected-parameters', expected_params)
     node6.add_opt("--plot-contours")
     samples = node6.new_output_file_opt(
                                     workflow.analysis_time, '.png',
                                     '--output-file', tags=[f'6{i}'])
-
+    print(node6)
     workflow += node6
 ############################################################################
 # # Create Injection .hdf file ###
