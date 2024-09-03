@@ -145,7 +145,7 @@ node5.add_opt('--verbose')
 node5.add_opt('--force')
 pycbc_samples = node5.new_output_file_opt(
                                 workflow.analysis_time, '.hdf',
-                                '--output-file', tags=[f'5'])
+                                '--output-file', tags=[f'pycbc-5'])
 
 workflow += node5
 
@@ -192,7 +192,7 @@ for i in range(len(learned_and_hidden)):
                                     '--output-file', tags=[f'4{i}'])
     posterior_samples = node4.new_output_file_opt(
                                 workflow.analysis_time, '.hdf',
-                                '--write-pycbc-posterior', tags=[f'41{i}'])
+                                '--write-pycbc-posterior', tags=[f'ml-sbi_4{i}'])
 
     workflow += node4
 
@@ -211,17 +211,17 @@ for i in range(len(learned_and_hidden)):
         f"{posterior_samples}: ML SBI",
         f"{pycbc_samples}: PYCBC"
     ]
-    print(input_names)
+    
     node6.add_input_list_opt('--input-file', 
-                             [posterior_samples+":ML_SBI",
-                              pycbc_samples+":PYCBC"])
+                             [posterior_samples,
+                              pycbc_samples])
     node6.add_list_opt('--parameters', learned)
     node6.add_list_opt('--expected-parameters', expected_params)
     node6.add_opt("--plot-contours")
     samples = node6.new_output_file_opt(
                                     workflow.analysis_time, '.png',
                                     '--output-file', tags=[f'6{i}'])
-    print(node6)
+    
     workflow += node6
 ############################################################################
 # # Create Injection .hdf file ###
