@@ -214,7 +214,7 @@ for i in range(len(learned_and_hidden)):
     node6.add_list_opt('--expected-parameters', expected_params)
     node6.add_opt("--plot-contours")
     samples = node6.new_output_file_opt(
-                                    workflow.analysis_time, '.hdf',
+                                    workflow.analysis_time, '.png',
                                     '--output-file', tags=[f'6{i}'])
 
     workflow += node6
