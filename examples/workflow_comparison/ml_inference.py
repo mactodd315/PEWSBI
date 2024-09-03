@@ -207,12 +207,13 @@ for i in range(len(learned_and_hidden)):
 
     node6 = exe6.create_node()
 
-    input_list = [
+    input_names = [
         f"{posterior_samples}: ML SBI",
         f"{pycbc_samples}: PYCBC"
     ]
+    print(input_names)
     node6.add_input_list_opt('--input-file', 
-                             input_list)
+                             input_names)
     node6.add_list_opt('--parameters', learned)
     node6.add_list_opt('--expected-parameters', expected_params)
     node6.add_opt("--plot-contours")
