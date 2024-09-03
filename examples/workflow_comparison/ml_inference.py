@@ -167,11 +167,12 @@ for i in range(len(learned_and_hidden)):
                          out_dir = out_dir)
 
     node3 = exe3.create_node()
+    print(noise_file)
 
     node3.add_input_opt('--input-file', training_hdf_file)
     node3.add_list_opt('--training-parameters', learned)
     node3.add_opt('--n-simulations', args.n_trainings)
-    node3.add_opt('--add-noise', noise_file)
+    node3.add_input_opt('--add-noise', noise_file)
     trained_nn = node3.new_output_file_opt(
                                     workflow.analysis_time, '.hdf',
                                     '--output-file', tags=[f'3{i}'])
